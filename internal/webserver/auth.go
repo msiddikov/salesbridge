@@ -9,8 +9,8 @@ import (
 )
 
 func setAuthRoutes(router *gin.Engine) {
-	router.GET("/auth/gohighlevel", GHLVL)
-	router.GET("/auth/gohighlevel/update", GHLVL_Update)
+	router.GET("/auth/hl", GHLVL)
+	router.GET("/auth/hl/update", GHLVL_Update)
 }
 
 func GHLVL(c *gin.Context) {

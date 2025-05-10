@@ -67,8 +67,8 @@ func getRunwayAuthLink(c *gin.Context) {
 		Url    string
 		Update string
 	}{
-		Url:    runway.GetOauthLink("/auth/gohighlevel"),
-		Update: runway.GetOauthLink("/auth/gohighlevel/update"),
+		Url:    runway.GetOauthLink("/auth/hl"),
+		Update: runway.GetOauthLink("/auth/hl/update"),
 	}
 	c.Data(lvn.Res(200, res, "OK"))
 }
