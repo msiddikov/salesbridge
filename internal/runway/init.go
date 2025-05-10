@@ -40,8 +40,8 @@ func init() {
 	svc = runwayv2.Service{
 		SaveTokens:   saveToken,
 		GetTokens:    getToken,
-		ClientId:     "633bc5167ea65f59c51c6ab2-l8u3eg1p",
-		ClientSecret: "112e0c5b-760e-4715-92b6-699bdef2cd06",
+		ClientId:     "681eeff13e0d005123a1a166-mahuf87b",
+		ClientSecret: "38a5757f-072c-4fce-9b1b-f8cef6c5f391",
 		Scope:        strings.Join(scopes, " "),
 		ServerDomain: config.Confs.Settings.SrvDomain,
 	}
