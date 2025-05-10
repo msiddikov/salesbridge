@@ -16,7 +16,7 @@ const (
 func StartScheduledJobs() {
 	tgbot.Notify("Scheduled jobs", "Starting scheduled jobs", false)
 	s := gocron.NewScheduler(time.UTC)
-	s.Every(24).Hours().Do(runFrequentJobs)
+	s.Every(2).Hours().Do(runFrequentJobs)
 	s.StartBlocking()
 }
 
