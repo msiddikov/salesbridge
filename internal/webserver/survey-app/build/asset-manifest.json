@@ -1,0 +1,35 @@
+{
+  "files": {
+    "main.css": "./static/css/main.e6c13ad2.css",
+    "main.js": "./static/js/main.c98758c2.js",
+    "static/js/787.2a25c2bc.chunk.js": "./static/js/787.2a25c2bc.chunk.js",
+    "static/media/lightbrown.png": "./static/media/lightbrown.6f5a23eeb4c41bec6283.png",
+    "static/media/lightblonde.png": "./static/media/lightblonde.e9025a2a623a4beaf0c1.png",
+    "static/media/other.png": "./static/media/other.705f569e9c4be2ec9814.png",
+    "static/media/red.png": "./static/media/red.fd3ea4b554c11a5572c1.png",
+    "static/media/darkblonde.png": "./static/media/darkblonde.8d83d25f6f27fcd9290c.png",
+    "static/media/grey.png": "./static/media/grey.44f968914e168b8ffe77.png",
+    "static/media/darkbrown.png": "./static/media/darkbrown.53c3122d46a25f269eb3.png",
+    "static/media/innerthigh.png": "./static/media/innerthigh.99ed5c67984e6116a7a6.png",
+    "static/media/outterthigh.png": "./static/media/outterthigh.866c88ea338e35cc692c.png",
+    "static/media/stomachreg.png": "./static/media/stomachreg.4c3f647290a65dc25d3a.png",
+    "static/media/lovehandles.png": "./static/media/lovehandles.e0a13ffffa652925f57e.png",
+    "static/media/butt.png": "./static/media/butt.ebe1c8cc0ac414bc6cf2.png",
+    "static/media/back.png": "./static/media/back.d0d052edc05d237ed2d2.png",
+    "static/media/underneck.png": "./static/media/underneck.c483936ad6c1851dee5d.png",
+    "static/media/upperarms.png": "./static/media/upperarms.9a7488329c8872ba039a.png",
+    "static/media/black.png": "./static/media/black.90803f5f92c3bac7c11f.png",
+    "static/media/bikini.png": "./static/media/bikini.ce053cbd41fb0e1f84e3.png",
+    "static/media/legs.png": "./static/media/legs.6a17b6a37e86b60c6c32.png",
+    "static/media/face.png": "./static/media/face.0a6f3b05a551ca87f193.png",
+    "static/media/underarms.png": "./static/media/underarms.a9269857145d19ea6d2e.png",
+    "index.html": "./index.html",
+    "main.e6c13ad2.css.map": "./static/css/main.e6c13ad2.css.map",
+    "main.c98758c2.js.map": "./static/js/main.c98758c2.js.map",
+    "787.2a25c2bc.chunk.js.map": "./static/js/787.2a25c2bc.chunk.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.e6c13ad2.css",
+    "static/js/main.c98758c2.js"
+  ]
+}

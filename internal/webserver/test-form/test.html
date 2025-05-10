@@ -1,0 +1,90 @@
+<div class="form-group">
+    <label for="nationalId">National ID</label>
+    <input
+    type="text"
+    id="nationalId"
+    maxlength="12"
+    pattern="\d{12}"
+    oninput="validateNationalId(this)"
+    onchange="updateData(this.value)"
+    class="form-control"
+    required
+    />
+    <div id="nationalIdError" class="error-message" style="color: red; display: none;"></div>
+    </div>
+    
+    
+    
+    <script>
+    function validateNationalId(input) {
+    const value = input.value;
+    const errorDiv = document.getElementById('nationalIdError');
+    let errorMessage = '';
+    
+    
+    
+    // Clear non-digit characters
+    input.value = value.replace(/\D/g, '');
+    
+    
+    
+    // Check length
+    if (value.length !== 12) {
+    errorMessage = 'National ID must be exactly 12 digits';
+    } else {
+    // Extract components
+    const yearDigits = value.substring(1, 3);
+    const monthDigits = value.substring(3, 5);
+    const dayDigits = value.substring(5, 7);
+    
+    
+    
+    // Validate year (01-99)
+    const year = parseInt(yearDigits);
+    if (isNaN(year) || year < 1 || year > 99) {
+    errorMessage = 'Year portion (digits 2-3) must be between 01 and 99';
+    }
+    
+    
+    
+    // Validate month (01-12)
+    const month = parseInt(monthDigits);
+    if (isNaN(month) || month < 1 || month > 12) {
+    errorMessage = 'Month portion (digits 4-5) must be between 01 and 12';
+    }
+    
+    
+    
+    // Validate day (01-31)
+    const day = parseInt(dayDigits);
+    if (isNaN(day) || day < 1 || day > 31) {
+    errorMessage = 'Day portion (digits 6-7) must be between 01 and 31';
+    }
+    }
+    
+    
+    
+    // Show/hide error message
+    if (errorMessage) {
+    errorDiv.textContent = errorMessage;
+    errorDiv.style.display = 'block';
+    input.setCustomValidity(errorMessage);
+    } else {
+    errorDiv.style.display = 'none';
+    input.setCustomValidity('');
+    }
+    }
+    
+    
+    
+    function updateData(value) {
+    // Find the custom field by its unique key
+    const dataField = document.querySelector('[name="Ru9v2U656o4boIeDbWNc"]');
+    if (dataField) {
+        dataField.value = value;
+    // Trigger change event to ensure GHL picks up the update
+    const event = new Event('input', { bubbles: true });
+    dataField.dispatchEvent(event);
+    }
+    }
+    </script>

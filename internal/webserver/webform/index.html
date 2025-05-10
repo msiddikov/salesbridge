@@ -1,0 +1,78 @@
+
+
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<title>Create a contact in ZENOTI</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link href="styles/bootstrap.css" rel="stylesheet" id="bootstrap-css">
+<link href="styles/style.css" rel="stylesheet">
+<script src="js/bootstrap.js"></script>
+<script src="js/jquery.js"></script>
+<script src="js/index.js"></script>
+<!------ Include the above in your HEAD tag ---------->
+</head>
+<body>
+  <div class="container contact-form">
+    <div class="contact-image">
+        <img src="img/rocket_contact.png" alt="rocket_contact"/>
+    </div>
+    <form>
+        <h3>Create a guest in ZENOTI</h3>
+        <div class="form-group row">
+          <label for="firstName" class="col-sm-4 col-form-label">First name</label>
+          <div class="col-sm-8">
+            <input type="text" class="form-control-plaintext" id="firstName" value="email@example.com">
+          </div>
+        </div>
+        <div class="form-group row">
+          <label for="lastName" class="col-sm-4 col-form-label">Last name</label>
+          <div class="col-sm-8">
+            <input type="text" class="form-control-plaintext" id="lastName" value="email@example.com">
+          </div>
+        </div>
+        <div class="form-group row">
+          <label for="email" class="col-sm-4 col-form-label">Email</label>
+          <div class="col-sm-8">
+            <input type="text" class="form-control-plaintext" id="email" value="email@example.com">
+          </div>
+        </div>
+        <div class="form-group row">
+          <label for="phone" class="col-sm-4 col-form-label">Phone</label>
+          <div class="col-sm-8">
+            <input type="text" class="form-control-plaintext" id="phone" value="email@example.com">
+          </div>
+        </div>
+        <div class="form-group row">
+          <label for="date" class="col-sm-4 col-form-label">Date of birth</label>
+          <div class="col-sm-8">
+              <input type="date" class="form-control" id="date" value="01/01/1990">
+            </div>
+        </div>
+        <div class="form-group row">
+            <label for="inputPassword" class="col-sm-4 col-form-label">Gender</label>
+            <div class="form-check form-check-inline">
+                <input class="form-check-input" type="radio" name="inlineRadioOptions" id="inlineRadio1" value=1>
+                <label class="form-check-label" for="inlineRadio1">Male</label>
+              </div>
+              <div class="form-check form-check-inline">
+                <input class="form-check-input" type="radio" name="inlineRadioOptions" id="inlineRadio2" value=0>
+                <label class="form-check-label" for="inlineRadio2">Female</label>
+              </div>
+              <div class="form-check form-check-inline">
+                <input class="form-check-input" type="radio" name="inlineRadioOptions" id="inlineRadio3" value=3 >
+                <label class="form-check-label" for="inlineRadio3">Other</label>
+            </div>
+        </div>
+        <button id="button" type="button" class="btn btn-outline-primary" disabled>Create</button>
+    </div>
+
+      </form>
+
+</div>
+</body>
+</html>
+
