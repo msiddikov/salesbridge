@@ -41,10 +41,13 @@ type (
 		Id            string
 		Center_id     string `json:"center_id"`
 		Personal_info Personal_info
+		Address_info  Address_Info `json:"address_info"`
 		Code          string
 		Referral      ReferralInfo     `json:"referral"`
 		Preferences   GuestPreferences `json:"preferences"`
 		Tags          []string
+		Gender        int
+		DateOfBirth   ZenotiDate `json:"date_of_birth"`
 	}
 
 	GuestPreferences struct {
@@ -59,6 +62,16 @@ type (
 			Id   string `json:"id"`
 			Name string `json:"name"`
 		} `json:"referral_source"`
+	}
+
+	Address_Info struct {
+		Address_1   string `json:"address_1"`
+		Address_2   string `json:"address_2"`
+		City        string `json:"city"`
+		Country_id  int    `json:"country_id"`
+		State_id    int    `json:"state_id"`
+		State_other string `json:"state_other"`
+		Zip_code    string `json:"zip_code"`
 	}
 
 	Personal_info struct {

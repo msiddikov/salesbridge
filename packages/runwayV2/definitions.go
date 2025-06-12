@@ -4,18 +4,29 @@ import "time"
 
 type (
 	Contact struct {
-		Id           string             `json:"id,omitempty"`
-		Email        string             `json:"email"`
-		Phone        string             `json:"phone"`
-		FirstName    string             `json:"firstName"`
-		LastName     string             `json:"lastName"`
-		LocationId   string             `json:"locationId,omitempty"`
+		Id         string `json:"id,omitempty"`
+		Email      string `json:"email,omitempty"`
+		Phone      string `json:"phone"`
+		FirstName  string `json:"firstName"`
+		LastName   string `json:"lastName"`
+		Gender     string `json:"gender,omitempty"`
+		LocationId string `json:"locationId,omitempty"`
+
+		Address1   string `json:"address1,omitempty"`
+		City       string `json:"city,omitempty"`
+		State      string `json:"state,omitempty"`
+		PostalCode string `json:"postalCode,omitempty"`
+		Country    string `json:"country,omitempty"`
+
 		Tags         []string           `json:"tags,omitempty"`
-		CustomFields []CustomFieldValue `json:",omitempty"`
+		CustomFields []CustomFieldValue `json:"customFields,omitempty"`
+
+		Source string `json:"source,omitempty"` // e.g. "sales-bridge", "zenoti"
 	}
 
 	CustomFieldValue struct {
 		Id          string
+		Name        string
 		Field_value any
 	}
 

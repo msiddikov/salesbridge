@@ -3,6 +3,7 @@ package webServer
 import (
 	"client-runaway-zenoti/internal/runway"
 	"client-runaway-zenoti/internal/tgbot"
+	"client-runaway-zenoti/internal/zenoti"
 	zenotiv1 "client-runaway-zenoti/packages/zenotiV1"
 	"encoding/json"
 	"fmt"
@@ -59,6 +60,12 @@ func zenotiWebhook(c *gin.Context) {
 		if err != nil {
 			tgbot.Notify("Webhook Data", fmt.Sprintf("%s\nDATA: %s", err.Error(), string(bodyBytes)), true)
 			panic(err)
+		}
+		c.Data(lvn.Res(200, nil, "Success"))
+	case "Guest.Created":
+		err = zenoti.GuestCreatedWebhookHandler(bodyBytes)
+		if err != nil {
+			tgbot.Notify("Webhook Data", fmt.Sprintf("%s\nDATA: %s", err.Error(), string(bodyBytes)), true)
 		}
 		c.Data(lvn.Res(200, nil, "Success"))
 	default:

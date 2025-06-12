@@ -22,6 +22,7 @@ type (
 		FirstName          string
 		LastName           string
 		Tags               string
+		LastUpdated        time.Time
 	}
 
 	GuestAppointmentsFilter struct {
@@ -30,6 +31,11 @@ type (
 		Size      int
 		StartDate time.Time
 		EndDate   time.Time
+	}
+
+	CallBackError struct {
+		Object interface{} `json:"object"`
+		Error  error       `json:"error"`
 	}
 )
 
@@ -176,6 +182,61 @@ func (c *Client) GuestsGetById(id string) (Guest, error) {
 	return res, err
 }
 
+// It returns all guests that have been updated after the given LastUpdated time.
+// If LastUpdated is not provided, it returns all guests.
+// Page and size are mandatory, LastUpdated is optional, other fields are ignored.
+func (c *Client) GuestsGetAll(filter GuestFilter) ([]Guest, PageInfo, error) {
+
+	res := struct {
+		Guests    []Guest
+		Page_info PageInfo
+	}{}
+
+	filter.CenterId = c.cfg.centerId
+
+	_, _, err := c.fetch(reqParams{
+		Method:   "GET",
+		Endpoint: "/guests",
+		QParams:  filter.GetQParams(),
+	}, &res)
+	return res.Guests, res.Page_info, err
+}
+
+// GuestsIterateAll iterates over all guests and applies the provided function fn to each guest.
+func (c *Client) GuestsIterateAll(startPage int, fn func(guest Guest, params ...any) error, params ...any) (map[string]CallBackError, error) {
+	filter := GuestFilter{
+		Page: startPage,
+		Size: 50,
+	}
+
+	errs := make(map[string]CallBackError)
+	for {
+		guests, _, err := c.GuestsGetAll(filter)
+		if err != nil {
+			return errs, err
+		}
+
+		for _, guest := range guests {
+			// if err := fn(guest, params...); err != nil {
+			// 	errs[guest.Id] = CallBackError{
+			// 		Object: guest,
+			// 		Error:  err,
+			// 	}
+			// }
+			fn(guest, params...)
+		}
+
+		if len(guests) < filter.Size {
+			break // No more guests to process
+		}
+
+		filter.Page++
+		fmt.Println("Processed page:", filter.Page)
+	}
+
+	return errs, nil
+}
+
 // Helper functions _________________________________________________________
 
 func (f *GuestFilter) GetQParams() []queryParam {
@@ -250,6 +311,12 @@ func (f *GuestFilter) GetQParams() []queryParam {
 		res = append(res, queryParam{
 			Key:   "tags",
 			Value: f.Tags,
+		})
+	}
+	if !f.LastUpdated.IsZero() {
+		res = append(res, queryParam{
+			Key:   "last_updated",
+			Value: f.LastUpdated.Format("2006-01-02"),
 		})
 	}
 	return res
