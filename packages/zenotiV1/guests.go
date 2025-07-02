@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -216,15 +217,16 @@ func (c *Client) GuestsIterateAll(startPage int, fn func(guest Guest, params ...
 			return errs, err
 		}
 
+		wg := sync.WaitGroup{}
 		for _, guest := range guests {
-			// if err := fn(guest, params...); err != nil {
-			// 	errs[guest.Id] = CallBackError{
-			// 		Object: guest,
-			// 		Error:  err,
-			// 	}
-			// }
-			fn(guest, params...)
+			wg.Add(1)
+			go func(g Guest, p ...any) {
+				defer wg.Done()
+				fn(g, p...)
+			}(guest, params...)
+			time.Sleep(300 * time.Millisecond)
 		}
+		wg.Wait() // Wait for all goroutines to finish
 
 		if len(guests) < filter.Size {
 			break // No more guests to process

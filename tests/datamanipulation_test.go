@@ -46,7 +46,7 @@ func TestPushGGuestsToGHL(t *testing.T) {
 		return
 	}
 
-	errs, err := zcli.GuestsIterateAll(56, integrations.PushGuestToGHL, cli)
+	errs, err := zcli.GuestsIterateAll(611, integrations.PushGuestToGHL, cli)
 	if err != nil {
 		t.Errorf("Failed to iterate guests: %v", err)
 		return

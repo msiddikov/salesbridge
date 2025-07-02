@@ -56,9 +56,14 @@ func UpdateAppt(appt zenotiv1.Appointment, l models.Location, client runwayv2.Cl
 
 	op := ops[0]
 
-	err = registerBooking(op.Contact.Id, appt.Invoice_id, appt.Start_time.Time, l)
+	wasAlreadyRegistered, err := registerBooking(op.Contact.Id, appt.Invoice_id, appt.Start_time.Time, l)
 	if err != nil {
 		return err
+	}
+
+	// if already registered, no need to update the stage
+	if wasAlreadyRegistered {
+		return nil
 	}
 
 	// continue if already in the right stage

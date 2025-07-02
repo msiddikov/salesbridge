@@ -140,20 +140,20 @@ func HasNote(o runwayv2.Opportunity, note string, client runwayv2.Client) bool {
 	return false
 }
 
-func registerBooking(id, invoiceId string, date time.Time, l models.Location) error {
+func registerBooking(id, invoiceId string, date time.Time, l models.Location) (wasAlreadyRegistered bool, err error) {
 
 	// getting client
 	client, err := svc.NewClientFromId(l.Id)
 	if err != nil {
 		fmt.Println(err)
-		return err
+		return false, err
 	}
 
 	// getting notes
 	notes, err := client.ContactsGetAllNotes(id)
 	if err != nil {
 		fmt.Println(err)
-		return err
+		return false, err
 	}
 
 	link := l.GetZenotiAppointmentLink(invoiceId)
@@ -161,13 +161,13 @@ func registerBooking(id, invoiceId string, date time.Time, l models.Location) er
 	for _, n := range notes {
 		if strings.Contains(n.Body, "Bookings for this contact") {
 			if strings.Contains(n.Body, invoiceId) { //already registered
-				return nil
+				return true, nil
 			}
 
 			collections := strings.Split(n.Body, "\n")
 			for _, c := range collections {
 				if strings.Contains(c, link) {
-					return nil
+					return false, nil
 				}
 			}
 
@@ -176,14 +176,14 @@ func registerBooking(id, invoiceId string, date time.Time, l models.Location) er
 				Id:        n.Id,
 				Body:      fmt.Sprintf("%s\n%s: %s", n.Body, date.Format("01/02/2006"), link),
 			})
-			return err
+			return false, err
 		}
 	}
 	_, err = client.ContactsCreateNote(runwayv2.Note{
 		ContactId: id,
 		Body:      fmt.Sprintf("Bookings for this contact:\n%s: %s", date.Format("01/02/2006"), link),
 	})
-	return err
+	return false, err
 }
 
 func registerCollection(id, invoiceId string, value float64, l models.Location) (wasRegistered bool, err error) {
