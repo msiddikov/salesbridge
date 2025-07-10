@@ -79,7 +79,7 @@ func (c *Client) GuestsUpdate(email, phone string) error {
 	}
 
 	// update the guest referral info
-	return c.GuestsUpdateById(guests[0].Id)
+	return nil
 }
 
 // Searches for the guest by email and phone.
