@@ -6,9 +6,9 @@ type (
 	Contact struct {
 		Id         string `json:"id,omitempty"`
 		Email      string `json:"email,omitempty"`
-		Phone      string `json:"phone"`
-		FirstName  string `json:"firstName"`
-		LastName   string `json:"lastName"`
+		Phone      string `json:"phone,omitempty"`
+		FirstName  string `json:"firstName,omitempty"`
+		LastName   string `json:"lastName,omitempty"`
 		Gender     string `json:"gender,omitempty"`
 		LocationId string `json:"locationId,omitempty"`
 
@@ -26,12 +26,12 @@ type (
 	}
 
 	ContactDndSettings struct {
-		Call     ContactDndSetting `json:"Call,omitempty"`
-		Sms      ContactDndSetting `json:"SMS,omitempty"`
-		Email    ContactDndSetting `json:"Email,omitempty"`
-		Whatsapp ContactDndSetting `json:"Whatsapp,omitempty"`
-		Gmb      ContactDndSetting `json:"GMB,omitempty"`
-		Fb       ContactDndSetting `json:"FB,omitempty"`
+		Call     *ContactDndSetting `json:"Call,omitempty"`
+		Sms      *ContactDndSetting `json:"SMS,omitempty"`
+		Email    *ContactDndSetting `json:"Email,omitempty"`
+		Whatsapp *ContactDndSetting `json:"Whatsapp,omitempty"`
+		Gmb      *ContactDndSetting `json:"GMB,omitempty"`
+		Fb       *ContactDndSetting `json:"FB,omitempty"`
 	}
 
 	ContactDndSetting struct {

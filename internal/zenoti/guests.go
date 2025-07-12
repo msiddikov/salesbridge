@@ -91,7 +91,7 @@ func GuestUpdatedWebhookHandler(WebhookBodyBytes []byte) error {
 		return errors.New("failed to create client from location ID: " + loc.Id + ", error: " + err.Error())
 	}
 
-	err = integrations.PushGuestToGHL(guest, cli)
+	err = integrations.PushGuestUpdateToGHL(guest, cli)
 	if err != nil {
 		return errors.New("failed to push guest to GHL: " + err.Error())
 	}

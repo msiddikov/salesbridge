@@ -69,7 +69,7 @@ func zenotiWebhook(c *gin.Context) {
 		}
 		c.Data(lvn.Res(200, nil, "Success"))
 	case "Guest.Updated":
-		err = zenoti.GuestCreatedWebhookHandler(bodyBytes)
+		err = zenoti.GuestUpdatedWebhookHandler(bodyBytes)
 		if err != nil {
 			tgbot.Notify("Webhook Data", fmt.Sprintf("%s\nDATA: %s", err.Error(), string(bodyBytes)), true)
 		}

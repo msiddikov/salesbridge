@@ -167,7 +167,7 @@ func (a *Client) ContactsUpdate(contact Contact) (Contact, error) {
 		Contact Contact
 	}{}
 
-	body, err := lvn.Marshal(contact)
+	body, err := json.Marshal(contact)
 	if err != nil {
 		return res.Contact, err
 	}
