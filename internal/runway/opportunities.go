@@ -61,7 +61,7 @@ func PrepareGuestInfoFromTheOpportunity(opp runwayv2.Opportunity) (zenotiv1.Gues
 			Receive_Transactional_SMS:   true,
 			Receive_Transactional_Email: true,
 		},
-		Tags: []string{"JFM"},
+		Tags: []string{"sales-bridge"},
 	}
 
 	if guest.Personal_info.First_name == "" && opp.Name != "" {
