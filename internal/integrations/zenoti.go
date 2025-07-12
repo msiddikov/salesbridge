@@ -104,10 +104,10 @@ func PushGuestUpdateToGHL(guest zenotiv1.Guest, params ...any) (err error) {
 		Id: contacts[0].Id,
 		DndSettings: runwayv2.ContactDndSettings{
 			Email: &runwayv2.ContactDndSetting{
-				Status: lvn.Ternary(guest.Preferences.Receive_Marketing_Email, runwayv2.ContactDndStatusActive, runwayv2.ContactDndStatusInactive),
+				Status: lvn.Ternary(guest.Preferences.Receive_Marketing_Email, runwayv2.ContactDndStatusInactive, runwayv2.ContactDndStatusActive),
 			},
 			Sms: &runwayv2.ContactDndSetting{
-				Status: lvn.Ternary(guest.Preferences.Receive_Marketing_SMS, runwayv2.ContactDndStatusActive, runwayv2.ContactDndStatusInactive),
+				Status: lvn.Ternary(guest.Preferences.Receive_Marketing_SMS, runwayv2.ContactDndStatusInactive, runwayv2.ContactDndStatusActive),
 			},
 		},
 	}
