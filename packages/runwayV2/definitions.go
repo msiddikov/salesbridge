@@ -12,17 +12,33 @@ type (
 		Gender     string `json:"gender,omitempty"`
 		LocationId string `json:"locationId,omitempty"`
 
-		Address1   string `json:"address1,omitempty"`
-		City       string `json:"city,omitempty"`
-		State      string `json:"state,omitempty"`
-		PostalCode string `json:"postalCode,omitempty"`
-		Country    string `json:"country,omitempty"`
+		Address1    string             `json:"address1,omitempty"`
+		City        string             `json:"city,omitempty"`
+		State       string             `json:"state,omitempty"`
+		PostalCode  string             `json:"postalCode,omitempty"`
+		Country     string             `json:"country,omitempty"`
+		DndSettings ContactDndSettings `json:"dndSettings,omitempty"`
 
 		Tags         []string           `json:"tags,omitempty"`
 		CustomFields []CustomFieldValue `json:"customFields,omitempty"`
 
 		Source string `json:"source,omitempty"` // e.g. "sales-bridge", "zenoti"
 	}
+
+	ContactDndSettings struct {
+		Call     ContactDndSetting `json:"Call,omitempty"`
+		Sms      ContactDndSetting `json:"SMS,omitempty"`
+		Email    ContactDndSetting `json:"Email,omitempty"`
+		Whatsapp ContactDndSetting `json:"Whatsapp,omitempty"`
+		Gmb      ContactDndSetting `json:"GMB,omitempty"`
+		Fb       ContactDndSetting `json:"FB,omitempty"`
+	}
+
+	ContactDndSetting struct {
+		Status contactDndStatus `json:"status,omitempty"`
+	}
+
+	contactDndStatus string
 
 	CustomFieldValue struct {
 		Id          string
@@ -144,3 +160,9 @@ const (
 func (m *Meta) isZero() bool {
 	return *m == Meta{}
 }
+
+const (
+	ContactDndStatusActive    contactDndStatus = "active"
+	ContactDndStatusInactive  contactDndStatus = "inactive"
+	ContactDndStatusPermanent contactDndStatus = "permanent"
+)

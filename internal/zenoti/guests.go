@@ -63,3 +63,38 @@ func GuestCreatedWebhookHandler(WebhookBodyBytes []byte) error {
 
 	return nil
 }
+
+func GuestUpdatedWebhookHandler(WebhookBodyBytes []byte) error {
+	type WebhookBody struct {
+		Data zenotiv1.Guest `json:"data"`
+	}
+
+	var webhookBody WebhookBody
+	if err := json.Unmarshal(WebhookBodyBytes, &webhookBody); err != nil {
+		return err
+	}
+
+	// Process the guest data
+	guest := webhookBody.Data
+	// TODO: Implement your logic here
+
+	loc := models.Location{}
+	db.DB.Where("zenoti_center_id = ?", guest.Center_id).First(&loc)
+	if loc.Id == "" {
+		return errors.New("location not found for center ID: " + guest.Center_id)
+
+	}
+
+	svc := runway.GetSvc()
+	cli, err := svc.NewClientFromId(loc.Id)
+	if err != nil {
+		return errors.New("failed to create client from location ID: " + loc.Id + ", error: " + err.Error())
+	}
+
+	err = integrations.PushGuestToGHL(guest, cli)
+	if err != nil {
+		return errors.New("failed to push guest to GHL: " + err.Error())
+	}
+
+	return nil
+}
