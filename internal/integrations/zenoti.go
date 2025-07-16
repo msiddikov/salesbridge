@@ -53,7 +53,17 @@ func PushGuestToGHL(guest zenotiv1.Guest, params ...any) (err error) {
 
 		Tags:   []string{"sales-bridge"},
 		Source: "Zenoti",
+
+		DndSettings: runwayv2.ContactDndSettings{
+			Email: &runwayv2.ContactDndSetting{
+				Status: lvn.Ternary(guest.Preferences.Receive_Marketing_Email, runwayv2.ContactDndStatusInactive, runwayv2.ContactDndStatusActive),
+			},
+			Sms: &runwayv2.ContactDndSetting{
+				Status: lvn.Ternary(guest.Preferences.Receive_Marketing_SMS, runwayv2.ContactDndStatusInactive, runwayv2.ContactDndStatusActive),
+			},
+		},
 	}
+
 	// dob := guest.Personal_info.DateOfBirth.Time.Format("2006-01-02")
 	// contact.CustomFields = []runwayv2.CustomFieldValue{
 	// 	{

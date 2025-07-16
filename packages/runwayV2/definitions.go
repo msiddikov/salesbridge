@@ -147,6 +147,30 @@ type (
 		Title         string    `json:"title,omitempty"`
 		CalendarNotes string    `json:"calendarNotes,omitempty"`
 	}
+
+	TriggerSubscriptionTriggerData struct {
+		Id        string                                 `json:"id,omitempty"`
+		Key       string                                 `json:"key,omitempty"`
+		Filters   []TriggerSubscriptionTriggerDataFilter `json:"filters,omitempty"`
+		EventType string                                 `json:"eventType,omitempty"`
+		TargetUrl string                                 `json:"targetUrl,omitempty"`
+	}
+
+	TriggerSubscriptionEvent             string
+	TriggerSubscriptionTriggerDataFilter struct {
+		Field string   `json:"field,omitempty"`
+		Value []string `json:"value,omitempty"`
+	}
+
+	TriggerSubscriptionExtra struct {
+		LocationId string `json:"locationId,omitempty"`
+		WorkflowId string `json:"workflowId,omitempty"`
+	}
+
+	TriggerSubscriptionData struct {
+		TriggerData TriggerSubscriptionTriggerData `json:"triggerData,omitempty"`
+		Extras      TriggerSubscriptionExtra       `json:"extras,omitempty"`
+	}
 )
 
 const (
@@ -165,4 +189,10 @@ const (
 	ContactDndStatusActive    contactDndStatus = "active"
 	ContactDndStatusInactive  contactDndStatus = "inactive"
 	ContactDndStatusPermanent contactDndStatus = "permanent"
+)
+
+const (
+	TriggerSubscriptionEventCreate TriggerSubscriptionEvent = "CREATED"
+	TriggerSubscriptionEventUpdate TriggerSubscriptionEvent = "UPDATED"
+	TriggerSubscriptionEventDelete TriggerSubscriptionEvent = "DELETED"
 )

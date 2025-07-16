@@ -224,16 +224,16 @@ func (c *Client) GuestsIterateAll(startPage int, fn func(guest Guest, params ...
 				defer wg.Done()
 				fn(g, p...)
 			}(guest, params...)
-			time.Sleep(300 * time.Millisecond)
+			time.Sleep(250 * time.Millisecond)
 		}
 		wg.Wait() // Wait for all goroutines to finish
 
-		if len(guests) < filter.Size {
+		if len(guests)+1 < filter.Size {
 			break // No more guests to process
 		}
 
-		filter.Page++
 		fmt.Println("Processed page:", filter.Page)
+		filter.Page++
 	}
 
 	return errs, nil

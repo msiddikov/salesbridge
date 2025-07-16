@@ -1,0 +1,22 @@
+{
+    "practice_id": "medmatrixemr.md-hq.com",
+    "path": "myPath",
+    "event_type": "schedule.created",
+    "data": {
+        "id": "36159",
+        "start": "2025-08-31 09:15:00",
+        "end": "2025-08-31 09:45:00",
+        "title": "Aesthetics Test",
+        "appointment_status": "scheduled",
+        "appointment_location": "",
+        "patient": {
+        "id": "1884",
+        "first": "Mason",
+        "middle": "",
+        "last": "Siddikov",
+        "dob": "1999-01-01 00:00:00",
+        "email1": "m.siddikov@gmail.com",
+        "phone_mobile": "18068553764"
+        }
+    }
+}

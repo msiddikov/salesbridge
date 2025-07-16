@@ -48,6 +48,7 @@ func Listen() {
 	setRunwayRoutes(router)
 	setChatlyRoutes(router)
 	setZenotiWebhooksRoutes(router)
+	setRoutes(router)
 
 	srv := &http.Server{
 		Addr:    config.Confs.Settings.SrvAddress,

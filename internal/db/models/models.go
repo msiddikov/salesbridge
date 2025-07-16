@@ -95,6 +95,16 @@ type (
 		Rank               int64
 	}
 
+	GhlTrigger struct {
+		Id          string `gorm:"primaryKey"`
+		Key         string
+		LocationId  string
+		WorkflowId  string
+		TargetUrl   string
+		TextFilter1 string
+		TextFilter2 string
+	}
+
 	GhlTokens struct {
 		LocationId   string `gorm:"primaryKey"`
 		AccessToken  string

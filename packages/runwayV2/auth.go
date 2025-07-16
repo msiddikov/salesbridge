@@ -104,6 +104,11 @@ func (p *reqParams) getVersion() string {
 func (a *Client) fetch(r reqParams, data interface{}) (http.Response, []byte, error) {
 
 	url := host + r.Endpoint
+	return a.fetchUrl(url, r, data)
+}
+
+func (a *Client) fetchUrl(url string, r reqParams, data interface{}) (http.Response, []byte, error) {
+
 	client := &http.Client{}
 	bodyReader := strings.NewReader(r.Body)
 
@@ -150,8 +155,8 @@ func (a *Client) fetch(r reqParams, data interface{}) (http.Response, []byte, er
 	}
 
 	if res.StatusCode == 429 {
-		fmt.Println("cooling down runawayV2 for 40s...")
-		time.Sleep(40 * time.Second)
+		fmt.Println("cooling down runawayV2 for 3s...")
+		time.Sleep(3 * time.Second)
 		return a.fetch(r, data)
 	}
 
