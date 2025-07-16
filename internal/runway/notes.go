@@ -38,7 +38,7 @@ func UpdateNote(o runwayv2.Opportunity, location models.Location, force bool) {
 	updateLink := true
 	for _, n := range notes {
 		//checking link
-		if strings.Contains(n.Body, "Please follow this link to create a guest in Zenoti") {
+		if strings.Contains(n.Body, "Please follow this link to create a guest in Zenoti") || strings.Contains(n.Body, "Please follow this link to view existing guest or create a new one in Zenoti") {
 			if force {
 				err := client.ContactsDeleteNote(n)
 				if err != nil {
@@ -65,7 +65,7 @@ func UpdateNote(o runwayv2.Opportunity, location models.Location, force bool) {
 
 	if updateLink {
 		link := config.Confs.Settings.SrvDomain + "/contact/" + o.Contact.Id + "/" + location.Id
-		msg := "Please follow this link to create a guest in Zenoti: " + link
+		msg := "Please follow this link to view existing guest or create a new one in Zenoti: " + link
 		_, err = client.ContactsCreateNote(
 			runwayv2.Note{
 				ContactId: o.Contact.Id,

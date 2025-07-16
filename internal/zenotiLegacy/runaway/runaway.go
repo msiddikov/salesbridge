@@ -889,7 +889,7 @@ func UpdateNote(c types.Opportunity, l config.Location, force bool) {
 	}
 	for _, n := range notes {
 		//checking link
-		if strings.Contains(n.Body, "Please follow this link to create a guest in Zenoti") {
+		if strings.Contains(n.Body, "Please follow this link to create a guest in Zenoti") || strings.Contains(n.Body, "Please follow this link to view existing guest or create a new one in Zenoti") {
 			if force {
 				err := deleteNote(c.Contact.Id, n.Id, l)
 				if err != nil {
@@ -914,7 +914,7 @@ func UpdateNote(c types.Opportunity, l config.Location, force bool) {
 	}
 	if updateLink {
 		link := config.Confs.Settings.SrvDomain + "/contact/" + c.Contact.Id + "/" + l.Id
-		msg := "Please follow this link to create a guest in Zenoti: " + link
+		msg := "Please follow this link to view existing guest or create a new one in Zenoti: " + link
 		setNote(c.Contact.Id, msg, l)
 	}
 
