@@ -35,14 +35,11 @@ func TriggerSubscriptionsHandler(c *gin.Context) {
 	c.Data(lvn.Res(200, trigger, "Trigger upserted successfully"))
 }
 
-func TriggerDelete(event runwayv2.TriggerSubscriptionData) {
-	db.DB.Where("id = ?", event.TriggerData.Id).Delete(&models.GhlTrigger{})
-}
-
 func triggerFromSubscriptionData(event runwayv2.TriggerSubscriptionData) models.GhlTrigger {
 	res := models.GhlTrigger{
 		Id:         event.TriggerData.Id,
 		Key:        event.TriggerData.Key,
+		Version:    event.Meta.Version,
 		LocationId: event.Extras.LocationId,
 		WorkflowId: event.Extras.WorkflowId,
 		TargetUrl:  event.TriggerData.TargetUrl,

@@ -98,6 +98,7 @@ type (
 	GhlTrigger struct {
 		Id          string `gorm:"primaryKey"`
 		Key         string
+		Version     string
 		LocationId  string
 		WorkflowId  string
 		TargetUrl   string

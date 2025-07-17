@@ -167,9 +167,15 @@ type (
 		WorkflowId string `json:"workflowId,omitempty"`
 	}
 
+	TriggersSubscriptionMeta struct {
+		Key     string `json:"key,omitempty"`
+		Version string `json:"version,omitempty"`
+	}
+
 	TriggerSubscriptionData struct {
 		TriggerData TriggerSubscriptionTriggerData `json:"triggerData,omitempty"`
 		Extras      TriggerSubscriptionExtra       `json:"extras,omitempty"`
+		Meta        TriggersSubscriptionMeta       `json:"meta,omitempty"`
 	}
 )
 
