@@ -22,8 +22,8 @@ func WebhookHandler(c *gin.Context) {
 
 	// switch based on the webhook type
 	switch webhookData.EventType {
-	// schedule.created or schedule.updated
-	case "schedule.created", "schedule.updated":
+	// schedule.created or schedule.modified
+	case "schedule.created", "schedule.modified":
 		err = ScheduleUpsertHandler(webhookData)
 		lvn.GinErr(c, 500, err, "Error while handling schedule upsert")
 	}

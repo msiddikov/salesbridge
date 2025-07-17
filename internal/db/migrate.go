@@ -46,6 +46,10 @@ func Migrate() {
 	if err != nil {
 		panic(err)
 	}
+	err = DB.AutoMigrate(&models.GhlTrigger{})
+	if err != nil {
+		panic(err)
+	}
 
 	defContact := models.Contact{
 		LocationId:    "0",

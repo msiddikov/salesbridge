@@ -174,10 +174,17 @@ func (c *Client) GuestsListAppointments(filter GuestAppointmentsFilter) ([]Appoi
 
 func (c *Client) GuestsGetById(id string) (Guest, error) {
 	res := Guest{}
+	qParams := []queryParam{
+		{
+			Key:   "expand",
+			Value: "preferences",
+		},
+	}
 
 	_, _, err := c.fetch(reqParams{
 		Method:   "GET",
 		Endpoint: "/guests/" + id,
+		QParams:  qParams,
 	}, &res)
 
 	return res, err
@@ -194,11 +201,15 @@ func (c *Client) GuestsGetAll(filter GuestFilter) ([]Guest, PageInfo, error) {
 	}{}
 
 	filter.CenterId = c.cfg.centerId
+	qParams := append(filter.GetQParams(), queryParam{
+		Key:   "expand",
+		Value: "preferences",
+	})
 
 	_, _, err := c.fetch(reqParams{
 		Method:   "GET",
 		Endpoint: "/guests",
-		QParams:  filter.GetQParams(),
+		QParams:  qParams,
 	}, &res)
 	return res.Guests, res.Page_info, err
 }

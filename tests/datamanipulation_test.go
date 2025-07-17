@@ -46,7 +46,7 @@ func TestPushGGuestsToGHL(t *testing.T) {
 		return
 	}
 
-	errs, err := zcli.GuestsIterateAll(591, integrations.PushGuestUpdateToGHL, cli)
+	errs, err := zcli.GuestsIterateAll(0, integrations.PushGuestUpdateToGHL, cli)
 	if err != nil {
 		t.Errorf("Failed to iterate guests: %v", err)
 		return
@@ -79,7 +79,7 @@ func TestPushGGuestsToGHL2(t *testing.T) {
 		return
 	}
 
-	errs, err := zcli.GuestsIterateAll(1, integrations.PushGuestUpdateToGHL, cli)
+	errs, err := zcli.GuestsIterateAll(0, integrations.PushGuestUpdateToGHL, cli)
 	if err != nil {
 		t.Errorf("Failed to iterate guests: %v", err)
 		return
@@ -112,7 +112,7 @@ func TestPushGGuestsToGHL3(t *testing.T) {
 		return
 	}
 
-	errs, err := zcli.GuestsIterateAll(1, integrations.PushGuestUpdateToGHL, cli)
+	errs, err := zcli.GuestsIterateAll(0, integrations.PushGuestUpdateToGHL, cli)
 	if err != nil {
 		t.Errorf("Failed to iterate guests: %v", err)
 		return
@@ -121,4 +121,39 @@ func TestPushGGuestsToGHL3(t *testing.T) {
 		t.Errorf("Errors occurred while pushing guests to GHL: %v", errs)
 		return
 	}
+}
+
+func TestPushGuestUpdate(t *testing.T) {
+	guestId := "5CC4475E-9759-4C05-B2EF-0599CE8A2BB9"
+	locationName := "Young Medical Spa"
+	loc := models.Location{}
+	db.DB.Where("name = ?", locationName).First(&loc)
+	if loc.Id == "" {
+		t.Errorf("Location %s not found", locationName)
+		return
+	}
+
+	svc := runway.GetSvc()
+	cli, err := svc.NewClientFromId(loc.Id)
+	if err != nil {
+		t.Errorf("Failed to create client from location ID %s: %v", loc.Id, err)
+		return
+	}
+
+	zcli, err := zenotiv1.NewClient(loc.Id, loc.ZenotiCenterId, loc.ZenotiApi)
+	if err != nil {
+		t.Errorf("Failed to create Zenoti client: %v", err)
+		return
+	}
+	guest, err := zcli.GuestsGetById(guestId)
+	if err != nil {
+		t.Errorf("Failed to get guest by ID %s: %v", guestId, err)
+		return
+	}
+	err = integrations.PushGuestUpdateToGHL(guest, cli)
+	if err != nil {
+		t.Errorf("Failed to push guest update to GHL: %v", err)
+		return
+	}
+
 }
