@@ -180,7 +180,7 @@ func UpdateCollectionFromWebhook(data zenotiv1.WebhookData) error {
 			Personal_info: zenotiv1.Personal_info{
 				First_name: data.Data.Invoice.Guest.First_Name,
 				Last_name:  data.Data.Invoice.Guest.Last_Name,
-				Email:      data.Data.Invoice.Guest.Guest_Email,
+				Email:      data.Data.Invoice.Guest.Email,
 				Mobile_phone: zenotiv1.Phone_info{
 					Number: data.Data.Invoice.Guest.Mobile_Phone,
 				},

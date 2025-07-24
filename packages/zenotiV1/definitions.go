@@ -234,7 +234,7 @@ type (
 		First_Name   string
 		Last_Name    string
 		Mobile_Phone string
-		Guest_Email  string
+		Email        string
 	}
 
 	WebhookDataPayload struct {
