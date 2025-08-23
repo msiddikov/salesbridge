@@ -121,14 +121,30 @@ func create(c *gin.Context) {
 func newOpportunity(c *gin.Context) {
 
 	info := struct {
-		Contact_Id string
-		Email      string
-		Phone      string
-		Location   struct {
-			Id string
-		}
+		Contact_Id  string `json:"contact_id"`
+		Email       string `json:"email"`
+		Phone       string `json:"phone"`
+		LocationStr string `json:"Location"`
+		Location    struct {
+			Id string `json:"id"`
+		} `json:"location"`
 	}{}
-	c.BindJSON(&info)
+
+	// // Read the raw body first
+	// body, err := io.ReadAll(c.Request.Body)
+	// if err != nil {
+	// 	fmt.Println("Error reading body:", err)
+	// 	return
+	// }
+	// fmt.Println("Raw JSON body:", string(body))
+
+	// // Now bind again (but need to reset the body since it was already read)
+	// c.Request.Body = io.NopCloser(bytes.NewBuffer(body))
+
+	err := c.BindJSON(&info)
+	if err != nil {
+		fmt.Println("Error binding json:", err)
+	}
 
 	locId := info.Location.Id
 	l := models.Location{}
