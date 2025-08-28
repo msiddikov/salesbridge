@@ -133,3 +133,27 @@ func TestUpdateToken(t *testing.T) {
 func TestUpdateAllTokens(t *testing.T) {
 	runway.UpdateAllTokens()
 }
+
+func TestGetOppoertunities(t *testing.T) {
+	startDateTime, _ := time.Parse("2006-01-02 15:04:05", "2025-08-01 00:00:00")
+	endDateTime, _ := time.Parse("2006-01-02 15:04:05", "2025-08-05 00:00:00")
+
+	locName := "Young Medical Spa - Lansdale"
+	loc := models.Location{}
+	db.DB.Where("name = ?", locName).First(&loc)
+
+	svc := runway.GetSvc()
+	client, _ := svc.NewClientFromId(loc.Id)
+
+	opportunities, err := client.OpportunitiesGetAll(runwayv2.OpportunitiesFilter{
+		PipelineId: loc.PipelineId,
+		StartDate:  startDateTime,
+		EndDate:    endDateTime,
+	})
+
+	if err != nil {
+		t.Error(err)
+	}
+
+	fmt.Println(len(opportunities))
+}

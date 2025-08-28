@@ -73,6 +73,7 @@ type (
 		Id              string
 		Name            string
 		MonetaryValue   float64
+		Source          string
 		Status          OpportunityStatus
 		Contact         Contact
 		PipelineStageId string

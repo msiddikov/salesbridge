@@ -1,0 +1,538 @@
+[
+    {
+        "label": "Young Medical Spa",
+        "core_metrics": {
+            "total_leads": 14,
+            "leads_to_booked": 0,
+            "booked": 87,
+            "booked_to_sales": 0,
+            "sales": 119,
+            "revenue": 0
+        },
+        "graph_data": {
+            "dates": [
+                "2025-08-01",
+                "2025-08-02",
+                "2025-08-03",
+                "2025-08-04",
+                "2025-08-05"
+            ],
+            "values": [
+                {
+                    "label": "Lead to Consultation",
+                    "data": [
+                        25,
+                        0,
+                        0,
+                        100,
+                        173.33333333333331
+                    ]
+                },
+                {
+                    "label": "Consultation to Procedure",
+                    "data": [
+                        1400,
+                        0,
+                        0,
+                        6800,
+                        6200
+                    ]
+                }
+            ]
+        },
+        "source_breakdown": {
+            "FORM": {
+                "source": "",
+                "ad_spend": 0,
+                "leads": 7,
+                "cost_per_lead": 0,
+                "consultations": 0,
+                "cost_per_consultation": 0,
+                "revenue": 0,
+                "roas": 0
+            },
+            "Facebook paid": {
+                "source": "",
+                "ad_spend": 0,
+                "leads": 10,
+                "cost_per_lead": 0,
+                "consultations": 0,
+                "cost_per_consultation": 0,
+                "revenue": 0,
+                "roas": 0
+            },
+            "Other": {
+                "source": "",
+                "ad_spend": 0,
+                "leads": 3,
+                "cost_per_lead": 0,
+                "consultations": 9,
+                "cost_per_consultation": 0,
+                "revenue": 86972.76999999999,
+                "roas": 0
+            },
+            "Paid Search": {
+                "source": "",
+                "ad_spend": 0,
+                "leads": 15,
+                "cost_per_lead": 0,
+                "consultations": 0,
+                "cost_per_consultation": 0,
+                "revenue": 0,
+                "roas": 0
+            },
+            "Zenoti": {
+                "source": "",
+                "ad_spend": 0,
+                "leads": 4,
+                "cost_per_lead": 0,
+                "consultations": 0,
+                "cost_per_consultation": 0,
+                "revenue": 0,
+                "roas": 0
+            },
+            "https://youngmedicalspa.com/": {
+                "source": "",
+                "ad_spend": 0,
+                "leads": 6,
+                "cost_per_lead": 0,
+                "consultations": 0,
+                "cost_per_consultation": 0,
+                "revenue": 0,
+                "roas": 0
+            },
+            "https://youngmedicalspa.com/center-valley/": {
+                "source": "",
+                "ad_spend": 0,
+                "leads": 1,
+                "cost_per_lead": 0,
+                "consultations": 0,
+                "cost_per_consultation": 0,
+                "revenue": 0,
+                "roas": 0
+            },
+            "https://youngmedicalspa.com/chat-contact-us/": {
+                "source": "",
+                "ad_spend": 0,
+                "leads": 2,
+                "cost_per_lead": 0,
+                "consultations": 0,
+                "cost_per_consultation": 0,
+                "revenue": 0,
+                "roas": 0
+            },
+            "https://youngmedicalspa.com/lansdale/?utm_source=google&utm_medium=search&utm_content=local-listing&utm_campaign=gbp-listing-lansdale&utm_term=young-gbp": {
+                "source": "",
+                "ad_spend": 0,
+                "leads": 2,
+                "cost_per_lead": 0,
+                "consultations": 0,
+                "cost_per_consultation": 0,
+                "revenue": 0,
+                "roas": 0
+            },
+            "https://youngmedicalspa.com/services/": {
+                "source": "",
+                "ad_spend": 0,
+                "leads": 1,
+                "cost_per_lead": 0,
+                "consultations": 0,
+                "cost_per_consultation": 0,
+                "revenue": 0,
+                "roas": 0
+            },
+            "https://youngmedicalspa.com/wilkes-barre/?utm_source=google&utm_medium=search&utm_content=local-listing&utm_campaign=gbp-listing-wilkes-barre&utm_term=young-gbp": {
+                "source": "",
+                "ad_spend": 0,
+                "leads": 3,
+                "cost_per_lead": 0,
+                "consultations": 0,
+                "cost_per_consultation": 0,
+                "revenue": 0,
+                "roas": 0
+            }
+        }
+    },
+    {
+        "label": "Young Medical Spa - Lansdale",
+        "core_metrics": {
+            "total_leads": 8,
+            "leads_to_booked": 0,
+            "booked": 53,
+            "booked_to_sales": 0,
+            "sales": 67,
+            "revenue": 0
+        },
+        "graph_data": {
+            "dates": [
+                "2025-08-01",
+                "2025-08-02",
+                "2025-08-03",
+                "2025-08-04",
+                "2025-08-05"
+            ],
+            "values": [
+                {
+                    "label": "Lead to Consultation",
+                    "data": [
+                        25,
+                        0,
+                        0,
+                        100,
+                        66.66666666666666
+                    ]
+                },
+                {
+                    "label": "Consultation to Procedure",
+                    "data": [
+                        1400,
+                        0,
+                        0,
+                        2100,
+                        1400
+                    ]
+                }
+            ]
+        },
+        "source_breakdown": {
+            "FORM": {
+                "source": "",
+                "ad_spend": 0,
+                "leads": 2,
+                "cost_per_lead": 0,
+                "consultations": 0,
+                "cost_per_consultation": 0,
+                "revenue": 0,
+                "roas": 0
+            },
+            "Facebook paid": {
+                "source": "",
+                "ad_spend": 0,
+                "leads": 2,
+                "cost_per_lead": 0,
+                "consultations": 0,
+                "cost_per_consultation": 0,
+                "revenue": 0,
+                "roas": 0
+            },
+            "Other": {
+                "source": "",
+                "ad_spend": 0,
+                "leads": 0,
+                "cost_per_lead": 0,
+                "consultations": 4,
+                "cost_per_consultation": 0,
+                "revenue": 16005.83,
+                "roas": 0
+            },
+            "Paid Search": {
+                "source": "",
+                "ad_spend": 0,
+                "leads": 1,
+                "cost_per_lead": 0,
+                "consultations": 0,
+                "cost_per_consultation": 0,
+                "revenue": 0,
+                "roas": 0
+            },
+            "https://youngmedicalspa.com/": {
+                "source": "",
+                "ad_spend": 0,
+                "leads": 1,
+                "cost_per_lead": 0,
+                "consultations": 0,
+                "cost_per_consultation": 0,
+                "revenue": 0,
+                "roas": 0
+            },
+            "https://youngmedicalspa.com/lansdale/?utm_source=google&utm_medium=search&utm_content=local-listing&utm_campaign=gbp-listing-lansdale&utm_term=young-gbp": {
+                "source": "",
+                "ad_spend": 0,
+                "leads": 2,
+                "cost_per_lead": 0,
+                "consultations": 0,
+                "cost_per_consultation": 0,
+                "revenue": 0,
+                "roas": 0
+            }
+        }
+    },
+    {
+        "label": "Young Medical Spa - Wilkes-Barre/Scranton",
+        "core_metrics": {
+            "total_leads": 32,
+            "leads_to_booked": 0,
+            "booked": 116,
+            "booked_to_sales": 0,
+            "sales": 130,
+            "revenue": 0
+        },
+        "graph_data": {
+            "dates": [
+                "2025-08-01",
+                "2025-08-02",
+                "2025-08-03",
+                "2025-08-04",
+                "2025-08-05"
+            ],
+            "values": [
+                {
+                    "label": "Lead to Consultation",
+                    "data": [
+                        0,
+                        0,
+                        0,
+                        0,
+                        40
+                    ]
+                },
+                {
+                    "label": "Consultation to Procedure",
+                    "data": [
+                        0,
+                        0,
+                        0,
+                        0,
+                        2650
+                    ]
+                }
+            ]
+        },
+        "source_breakdown": {
+            "FORM": {
+                "source": "",
+                "ad_spend": 0,
+                "leads": 3,
+                "cost_per_lead": 0,
+                "consultations": 0,
+                "cost_per_consultation": 0,
+                "revenue": 0,
+                "roas": 0
+            },
+            "Facebook paid": {
+                "source": "",
+                "ad_spend": 0,
+                "leads": 5,
+                "cost_per_lead": 0,
+                "consultations": 0,
+                "cost_per_consultation": 0,
+                "revenue": 0,
+                "roas": 0
+            },
+            "Other": {
+                "source": "",
+                "ad_spend": 0,
+                "leads": 3,
+                "cost_per_lead": 0,
+                "consultations": 2,
+                "cost_per_consultation": 0,
+                "revenue": 32528.1,
+                "roas": 0
+            },
+            "Paid Search": {
+                "source": "",
+                "ad_spend": 0,
+                "leads": 11,
+                "cost_per_lead": 0,
+                "consultations": 0,
+                "cost_per_consultation": 0,
+                "revenue": 0,
+                "roas": 0
+            },
+            "Zenoti": {
+                "source": "",
+                "ad_spend": 0,
+                "leads": 4,
+                "cost_per_lead": 0,
+                "consultations": 0,
+                "cost_per_consultation": 0,
+                "revenue": 0,
+                "roas": 0
+            },
+            "https://youngmedicalspa.com/chat-contact-us/": {
+                "source": "",
+                "ad_spend": 0,
+                "leads": 2,
+                "cost_per_lead": 0,
+                "consultations": 0,
+                "cost_per_consultation": 0,
+                "revenue": 0,
+                "roas": 0
+            },
+            "https://youngmedicalspa.com/services/": {
+                "source": "",
+                "ad_spend": 0,
+                "leads": 1,
+                "cost_per_lead": 0,
+                "consultations": 0,
+                "cost_per_consultation": 0,
+                "revenue": 0,
+                "roas": 0
+            },
+            "https://youngmedicalspa.com/wilkes-barre/?utm_source=google&utm_medium=search&utm_content=local-listing&utm_campaign=gbp-listing-wilkes-barre&utm_term=young-gbp": {
+                "source": "",
+                "ad_spend": 0,
+                "leads": 3,
+                "cost_per_lead": 0,
+                "consultations": 0,
+                "cost_per_consultation": 0,
+                "revenue": 0,
+                "roas": 0
+            }
+        }
+    },
+    {
+        "label": "Total",
+        "core_metrics": {
+            "total_leads": 54,
+            "leads_to_booked": 0,
+            "booked": 256,
+            "booked_to_sales": 0,
+            "sales": 316,
+            "revenue": 0
+        },
+        "graph_data": {
+            "dates": [
+                "2025-08-01",
+                "2025-08-02",
+                "2025-08-03",
+                "2025-08-04",
+                "2025-08-05"
+            ],
+            "values": [
+                {
+                    "label": "Lead to Consultation",
+                    "data": [
+                        25,
+                        0,
+                        0,
+                        100,
+                        173.33333333333331
+                    ]
+                },
+                {
+                    "label": "Consultation to Procedure",
+                    "data": [
+                        1400,
+                        0,
+                        0,
+                        6800,
+                        6200
+                    ]
+                }
+            ]
+        },
+        "source_breakdown": {
+            "FORM": {
+                "source": "",
+                "ad_spend": 0,
+                "leads": 7,
+                "cost_per_lead": 0,
+                "consultations": 0,
+                "cost_per_consultation": 0,
+                "revenue": 0,
+                "roas": 0
+            },
+            "Facebook paid": {
+                "source": "",
+                "ad_spend": 0,
+                "leads": 10,
+                "cost_per_lead": 0,
+                "consultations": 0,
+                "cost_per_consultation": 0,
+                "revenue": 0,
+                "roas": 0
+            },
+            "Other": {
+                "source": "",
+                "ad_spend": 0,
+                "leads": 3,
+                "cost_per_lead": 0,
+                "consultations": 9,
+                "cost_per_consultation": 0,
+                "revenue": 86972.76999999999,
+                "roas": 0
+            },
+            "Paid Search": {
+                "source": "",
+                "ad_spend": 0,
+                "leads": 15,
+                "cost_per_lead": 0,
+                "consultations": 0,
+                "cost_per_consultation": 0,
+                "revenue": 0,
+                "roas": 0
+            },
+            "Zenoti": {
+                "source": "",
+                "ad_spend": 0,
+                "leads": 4,
+                "cost_per_lead": 0,
+                "consultations": 0,
+                "cost_per_consultation": 0,
+                "revenue": 0,
+                "roas": 0
+            },
+            "https://youngmedicalspa.com/": {
+                "source": "",
+                "ad_spend": 0,
+                "leads": 6,
+                "cost_per_lead": 0,
+                "consultations": 0,
+                "cost_per_consultation": 0,
+                "revenue": 0,
+                "roas": 0
+            },
+            "https://youngmedicalspa.com/center-valley/": {
+                "source": "",
+                "ad_spend": 0,
+                "leads": 1,
+                "cost_per_lead": 0,
+                "consultations": 0,
+                "cost_per_consultation": 0,
+                "revenue": 0,
+                "roas": 0
+            },
+            "https://youngmedicalspa.com/chat-contact-us/": {
+                "source": "",
+                "ad_spend": 0,
+                "leads": 2,
+                "cost_per_lead": 0,
+                "consultations": 0,
+                "cost_per_consultation": 0,
+                "revenue": 0,
+                "roas": 0
+            },
+            "https://youngmedicalspa.com/lansdale/?utm_source=google&utm_medium=search&utm_content=local-listing&utm_campaign=gbp-listing-lansdale&utm_term=young-gbp": {
+                "source": "",
+                "ad_spend": 0,
+                "leads": 2,
+                "cost_per_lead": 0,
+                "consultations": 0,
+                "cost_per_consultation": 0,
+                "revenue": 0,
+                "roas": 0
+            },
+            "https://youngmedicalspa.com/services/": {
+                "source": "",
+                "ad_spend": 0,
+                "leads": 1,
+                "cost_per_lead": 0,
+                "consultations": 0,
+                "cost_per_consultation": 0,
+                "revenue": 0,
+                "roas": 0
+            },
+            "https://youngmedicalspa.com/wilkes-barre/?utm_source=google&utm_medium=search&utm_content=local-listing&utm_campaign=gbp-listing-wilkes-barre&utm_term=young-gbp": {
+                "source": "",
+                "ad_spend": 0,
+                "leads": 3,
+                "cost_per_lead": 0,
+                "consultations": 0,
+                "cost_per_consultation": 0,
+                "revenue": 0,
+                "roas": 0
+            }
+        }
+    }
+]
