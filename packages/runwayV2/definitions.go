@@ -137,6 +137,12 @@ type (
 		AppointmentStatus string
 	}
 
+	TimeSlots struct {
+		Dates struct {
+			Slots []string `json:"slots,omitempty"`
+		} `json:"_dates_,omitempty"`
+	}
+
 	OpportunityStatus string
 
 	BlockSlot struct {

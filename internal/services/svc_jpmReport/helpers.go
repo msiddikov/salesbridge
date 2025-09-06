@@ -3,8 +3,10 @@ package svc_jpmreport
 import (
 	"client-runaway-zenoti/internal/db/models"
 	"client-runaway-zenoti/internal/runway"
+	"client-runaway-zenoti/packages/googleads"
 	runwayv2 "client-runaway-zenoti/packages/runwayV2"
 	zenotiv1 "client-runaway-zenoti/packages/zenotiV1"
+	"context"
 	"time"
 
 	lvn "github.com/Lavina-Tech-LLC/lavinagopackage/v2"
@@ -55,17 +57,17 @@ func getLeadsApptsCollections(loc models.Location, startDate, endDate time.Time)
 }
 
 func getAdSpends(loc models.Location, startDate, endDate time.Time) (adwords float64, meta float64, err error) {
-	return 1000, 500, nil
+	googleadsSpend, err := googleads.GetAdSpendGoPkg(context.Background(), googleAdsId, startDate, endDate)
+
+	return googleadsSpend, 0, err
 }
 
 func calculateTotals(data []ReportData) []ReportData {
-	total := data[0]
+	total := ReportData{}
+	total.SourceBreakdown = make(map[string]SourceBreakdown)
 	total.Label = "Total"
 
-	for k, d := range data {
-		if k == 0 {
-			continue
-		}
+	for _, d := range data {
 
 		// Aggregate core metrics
 		total.CoreMetrics.Leads += d.CoreMetrics.Leads
@@ -107,47 +109,52 @@ func calculateTotals(data []ReportData) []ReportData {
 
 func distributeAdSpends(data []ReportData) []ReportData {
 
-	totalLeads := 0
-	for _, d := range data {
+	metaCostPerLead := float64(0)
+	adwordsCostPerLead := float64(0)
+
+	for i, d := range data {
 		if d.Label == "Total" {
-			totalLeads = d.CoreMetrics.Leads
+
 			sb, ok := d.SourceBreakdown["Paid Search"]
 			if !ok {
 				sb = SourceBreakdown{}
 			}
+			if sb.Leads > 0 {
+				adwordsCostPerLead = adwordsAdSpend / float64(sb.Leads)
+			}
 			sb = fillBreakdown(sb, adwordsAdSpend)
-			d.SourceBreakdown["Paid Search"] = sb
+			data[i].SourceBreakdown["Paid Search"] = sb
 
 			sb, ok = d.SourceBreakdown["Facebook paid"]
 			if !ok {
 				sb = SourceBreakdown{}
 			}
 			sb = fillBreakdown(sb, metaAdSpend)
-			d.SourceBreakdown["Facebook paid"] = sb
+			if sb.Leads > 0 {
+				metaCostPerLead = metaAdSpend / float64(sb.Leads)
+			}
+			data[i].SourceBreakdown["Facebook paid"] = sb
 		}
 	}
 
-	for _, d := range data {
-		if d.Label != "Total" {
+	for i, d := range data {
+		if d.Label == "Total" {
 			continue
 		}
-
-		adwordsAdSpendPerLocation := lvn.Ternary(totalLeads, float64(0), adwordsAdSpend/float64(totalLeads))
-		metaAdSpendPerLocation := lvn.Ternary(totalLeads, float64(0), metaAdSpend/float64(totalLeads))
 
 		sb, ok := d.SourceBreakdown["Paid Search"]
 		if !ok {
 			sb = SourceBreakdown{}
 		}
-		sb = fillBreakdown(sb, adwordsAdSpendPerLocation)
-		d.SourceBreakdown["Paid Search"] = sb
+		sb = fillBreakdown(sb, adwordsCostPerLead*float64(sb.Leads))
+		data[i].SourceBreakdown["Paid Search"] = sb
 
 		sb, ok = d.SourceBreakdown["Facebook paid"]
 		if !ok {
 			sb = SourceBreakdown{}
 		}
-		sb = fillBreakdown(sb, metaAdSpendPerLocation)
-		d.SourceBreakdown["Facebook paid"] = sb
+		sb = fillBreakdown(sb, metaCostPerLead*float64(sb.Leads))
+		data[i].SourceBreakdown["Facebook paid"] = sb
 
 	}
 

@@ -1,6 +1,10 @@
 package runwayv2
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"fmt"
+	"time"
+)
 
 type (
 	CalendarCreateReq struct {
@@ -142,6 +146,29 @@ func (a *Client) CalendarEditBlockSlot(id string, req BlockSlot) (BlockSlot, err
 		Endpoint: "/calendars/events/block-slots/" + id,
 		Body:     string(bd),
 	}, &res)
+
+	return res, err
+}
+
+func (a *Client) CalendarGetFreeSlots(calendarId string, start, end time.Time) (TimeSlots, error) {
+	res := TimeSlots{}
+
+	_, bd, err := a.fetch(reqParams{
+		Method:   "GET",
+		Endpoint: "/calendars/" + calendarId + "/free-slots",
+		QParams: []queryParam{
+			{
+				Key:   "startDate",
+				Value: fmt.Sprintf("%d", start.Unix()),
+			},
+			{
+				Key:   "endDate",
+				Value: fmt.Sprintf("%d", end.Unix()),
+			},
+		},
+	}, &res)
+
+	fmt.Println(string(bd))
 
 	return res, err
 }

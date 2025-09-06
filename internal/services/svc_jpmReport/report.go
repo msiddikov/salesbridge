@@ -54,6 +54,10 @@ var (
 	locations      = []string{"Young Medical Spa", "Young Medical Spa - Lansdale", "Young Medical Spa - Wilkes-Barre/Scranton"}
 )
 
+const (
+	googleAdsId = "3082004096"
+)
+
 func GetReport(c *gin.Context) {
 	// collect params
 	startDateString := c.Query("start")
@@ -84,7 +88,7 @@ func GetReport(c *gin.Context) {
 
 	res = calculateTotals(res)
 
-	metaAdSpend, adwordsAdSpend, err = getAdSpends(models.Location{}, startDate, endDate)
+	adwordsAdSpend, metaAdSpend, err = getAdSpends(models.Location{}, startDate, endDate)
 	lvn.GinErr(c, 500, err, "Unable to get ad spends")
 	res = distributeAdSpends(res)
 

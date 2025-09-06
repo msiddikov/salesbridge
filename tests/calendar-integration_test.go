@@ -5,8 +5,10 @@ import (
 	"client-runaway-zenoti/internal/db/models"
 	integrations_zenoti "client-runaway-zenoti/internal/integrations/zenoti"
 	"client-runaway-zenoti/internal/runway"
+	"fmt"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestCalendarSync(t *testing.T) {
@@ -75,4 +77,28 @@ func TestTurnOffAllIntegrations(t *testing.T) {
 		l.SyncContacts = false
 		db.DB.Save(&l)
 	}
+}
+
+func TestGetFreeSlots(t *testing.T) {
+	calendarId := "2zhjzct386049VyRbB8U"
+	start := time.Now().AddDate(0, 0, 5)
+	end := start.Add(15 * 24 * time.Hour)
+
+	// getting location
+	l := models.Location{}
+	locationName := "YMS"
+	db.DB.Where("name = ?", locationName).First(&l)
+	if l.Id == "" {
+		t.Error("Location not found")
+	}
+
+	svc := runway.GetSvc()
+	client, _ := svc.NewClientFromId(l.Id)
+
+	res, err := client.CalendarGetFreeSlots(calendarId, start, end)
+	if err != nil {
+		t.Error(err)
+	}
+
+	fmt.Println(res)
 }
