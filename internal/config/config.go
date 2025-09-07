@@ -18,6 +18,7 @@ type (
 		Settings  Settings
 		RC        RingCentral
 		DB        gormDB
+		GAjson    string
 	}
 	Settings struct {
 		SrvAddress   string
