@@ -1,12 +1,25 @@
 package meta
 
+import (
+	"client-runaway-zenoti/internal/db"
+	"client-runaway-zenoti/internal/db/models"
+)
+
 func init() {
 
 }
 
 func getTestClient() Client {
-	testToken := "EAAK2EsTlzmEBO2anEplLwLyVTu0FCB3pCjgqxYZAc6HIxZAEco5zmRyhN15DHaqKU6IrXQnkljGyIOayRAKYSFZCjfFDiDp7gVBrBm7vbCHLJz43kupv1KhfN1ncDwmPHSqHVWxdyo9FbQaHP8KurPBrS3j0r6aKHKvhQVhNRKR0J3B7DIqoPGM"
+	setting := models.Setting{
+		Key: "meta_token",
+	}
+
+	err := db.DB.First(&setting, "key = ?", "meta_token").Error
+	if err != nil {
+		return Client{}
+	}
+
 	s := Service{}
-	cli, _ := s.NewClient(testToken)
+	cli, _ := s.NewClient(setting.Value)
 	return cli
 }

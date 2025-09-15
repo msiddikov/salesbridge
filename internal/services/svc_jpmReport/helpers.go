@@ -1,66 +1,8 @@
 package svc_jpmreport
 
 import (
-	"client-runaway-zenoti/internal/db/models"
-	"client-runaway-zenoti/internal/runway"
-	"client-runaway-zenoti/packages/googleads"
-	runwayv2 "client-runaway-zenoti/packages/runwayV2"
-	zenotiv1 "client-runaway-zenoti/packages/zenotiV1"
-	"context"
-	"time"
-
 	lvn "github.com/Lavina-Tech-LLC/lavinagopackage/v2"
 )
-
-func getLeadsApptsCollections(loc models.Location, startDate, endDate time.Time) (leads []runwayv2.Opportunity, appointments []zenotiv1.Appointment, collections []zenotiv1.Collection, err error) {
-
-	// Getting leads
-	svc := runway.GetSvc()
-	rcli, err := svc.NewClientFromId(loc.Id)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
-	leads, err = rcli.OpportunitiesGetAll(runwayv2.OpportunitiesFilter{
-		StartDate:  startDate,
-		EndDate:    endDate,
-		PipelineId: loc.PipelineId,
-	})
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
-	// Getting appointments
-	zcli, err := zenotiv1.NewClient(loc.Id, loc.ZenotiCenterId, loc.ZenotiApi)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
-	appointments, err = zcli.AppointmentsListAllAppointments(zenotiv1.AppointmentFilter{
-		StartDate: startDate,
-		EndDate:   endDate,
-
-		IncludeNoShowCancel: true,
-	})
-
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
-	// Getting collections
-	collections, err = zcli.ReportsAllCollections(startDate, endDate)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
-	return leads, appointments, collections, nil
-}
-
-func getAdSpends(loc models.Location, startDate, endDate time.Time) (adwords float64, meta float64, err error) {
-	googleadsSpend, err := googleads.GetAdSpendGoPkg(context.Background(), googleAdsId, startDate, endDate)
-
-	return googleadsSpend, 0, err
-}
 
 func calculateTotals(data []ReportData) []ReportData {
 	total := ReportData{}

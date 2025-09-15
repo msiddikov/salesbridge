@@ -3,6 +3,7 @@ package svc_jpmreport
 import (
 	"client-runaway-zenoti/internal/db/models"
 	"math"
+	"sync"
 	"time"
 
 	lvn "github.com/Lavina-Tech-LLC/lavinagopackage/v2"
@@ -15,6 +16,7 @@ type (
 		CoreMetrics     CoreMetrics                `json:"core_metrics"`
 		GraphData       GraphData                  `json:"graph_data"`
 		SourceBreakdown map[string]SourceBreakdown `json:"source_breakdown"`
+		LeadRawData     []LeadRawData              `json:"lead_raw_data,omitempty"`
 	}
 
 	CoreMetrics struct {
@@ -46,16 +48,32 @@ type (
 		Revenue             float64 `json:"revenue"`
 		Roas                float64 `json:"roas"`
 	}
+
+	LeadRawData struct {
+		Name            string
+		Source          string
+		CreatedDate     time.Time
+		Status          string
+		Stage           string
+		HadConsultation bool
+		HadSale         bool
+		ConsultDate     time.Time
+		Revenue         float64
+		Appointments    []LeadAppointment
+	}
+
+	LeadAppointment struct {
+		Date   time.Time
+		Status string
+		Total  float64
+		Link   string
+	}
 )
 
 var (
 	metaAdSpend    float64
 	adwordsAdSpend float64
 	locations      = []string{"Young Medical Spa", "Young Medical Spa - Lansdale", "Young Medical Spa - Wilkes-Barre/Scranton"}
-)
-
-const (
-	googleAdsId = "3082004096"
 )
 
 func GetReport(c *gin.Context) {
@@ -75,15 +93,19 @@ func GetReport(c *gin.Context) {
 
 	// build data
 	res := []ReportData{}
-
+	wg := sync.WaitGroup{}
 	for _, locName := range locations {
 		loc := models.Location{}
 		models.DB.Where("name = ?", locName).First(&loc)
-
-		report, err := getReportForLocation(loc, startDate, endDate)
-		lvn.GinErr(c, 500, err, "Unable to get report for location "+loc.Name)
-
-		res = append(res, report)
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			_, err = getReportForLocation(loc, startDate, endDate, &res)
+		}()
+	}
+	wg.Wait()
+	if err != nil {
+		lvn.GinErr(c, 500, err, "Unable to get report for locations")
 	}
 
 	res = calculateTotals(res)
@@ -95,38 +117,37 @@ func GetReport(c *gin.Context) {
 	c.JSON(200, res)
 }
 
-func getReportForLocation(loc models.Location, startDate, endDate time.Time) (ReportData, error) {
+func getReportForLocation(loc models.Location, startDate, endDate time.Time, results *[]ReportData) (ReportData, error) {
 	res := ReportData{
 		Label: loc.Name,
 	}
 	// get leads, appointments and collections for period
-	leads, appointments, collections, err := getLeadsApptsCollections(loc, startDate, endDate)
+	leadsData, err := getLeadsWithAppointments(loc, startDate, endDate)
 	if err != nil {
 		return ReportData{}, err
 	}
 
+	booked, sales, revenue := getTotalBookedAndSales(leadsData)
 	res.CoreMetrics = CoreMetrics{
-		Leads:   len(leads),
-		Booked:  len(appointments),
-		Sales:   len(collections),
-		Revenue: 0,
+		Leads:   len(leadsData),
+		Booked:  booked,
+		Sales:   sales,
+		Revenue: revenue,
 	}
 
-	if len(leads) > 0 {
-		res.CoreMetrics.LeadsToBooked = math.Round((float64(len(appointments)) / float64(len(leads))) * 100)
+	if res.CoreMetrics.Leads > 0 {
+		res.CoreMetrics.LeadsToBooked = math.Round((float64(res.CoreMetrics.Booked) / float64(res.CoreMetrics.Leads)) * 100)
 	}
 
-	if len(appointments) > 0 {
-		res.CoreMetrics.BookedToSales = math.Round((float64(len(collections)) / float64(len(appointments))) * 100)
+	if res.CoreMetrics.Booked > 0 {
+		res.CoreMetrics.BookedToSales = math.Round((float64(res.CoreMetrics.Sales) / float64(res.CoreMetrics.Booked)) * 100)
 	}
 
-	for _, c := range collections {
-		res.CoreMetrics.Revenue += c.Total_collection
-	}
+	res.GraphData = buildGraphData(startDate, endDate, leadsData)
 
-	res.GraphData = buildGraphData(startDate, endDate, leads, collections)
+	res.SourceBreakdown = breakBySource(leadsData)
+	res.LeadRawData = leadsData
 
-	res.SourceBreakdown = breakBySource(leads, appointments, collections)
-
+	*results = append(*results, res)
 	return res, nil
 }

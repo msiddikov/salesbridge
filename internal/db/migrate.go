@@ -50,6 +50,10 @@ func Migrate() {
 	if err != nil {
 		panic(err)
 	}
+	err = DB.AutoMigrate(&models.Setting{})
+	if err != nil {
+		panic(err)
+	}
 
 	defContact := models.Contact{
 		LocationId:    "0",

@@ -1,12 +1,10 @@
 package svc_jpmreport
 
 import (
-	runwayv2 "client-runaway-zenoti/packages/runwayV2"
-	zenotiv1 "client-runaway-zenoti/packages/zenotiV1"
 	"time"
 )
 
-func buildGraphData(startDate, endDate time.Time, leads []runwayv2.Opportunity, collections []zenotiv1.Collection) GraphData {
+func buildGraphData(startDate, endDate time.Time, leadsData []LeadRawData) GraphData {
 	dates := []string{}
 	leadToConsultationData := []float64{}
 	consultToProcedureData := []float64{}
@@ -17,17 +15,15 @@ func buildGraphData(startDate, endDate time.Time, leads []runwayv2.Opportunity, 
 	proceduresCountMap := make(map[string]int)
 
 	// Populate the maps with counts
-	for _, lead := range leads {
-		dateStr := lead.CreatedAt.Format("2006-01-02")
+	for _, lead := range leadsData {
+		dateStr := lead.CreatedDate.Format("2006-01-02")
 		leadsCountMap[dateStr]++
-	}
-
-	for _, collection := range collections {
-		dateStr := collection.Created_Date.Time.Format("2006-01-02")
-		if collection.Total_collection == 0 {
-			consultationsCountMap[dateStr]++
-		} else {
-			proceduresCountMap[dateStr]++
+		for _, appt := range lead.Appointments {
+			if appt.Total > 0 {
+				proceduresCountMap[dateStr]++
+			} else {
+				consultationsCountMap[dateStr]++
+			}
 		}
 	}
 

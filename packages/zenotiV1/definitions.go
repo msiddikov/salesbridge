@@ -113,6 +113,49 @@ type (
 		BlockOut      BlockOut
 	}
 
+	AppointmentGroup struct {
+		Appointment_Group_Id string
+		Invoice_id           string
+		Invoice_status       InvoiceStatus
+		Invoice              Invoice
+		Appointment_Services []AppointmentService
+		Appointment_Packages []AppointmentPackage
+
+		Price struct {
+			Sales float32
+		}
+	}
+
+	AppointmentService struct {
+		Appointment_Id     string
+		Invoice_item_id    string
+		Start_time         ZenotiTime
+		End_time           ZenotiTime
+		Appointment_status ZenotiStatus
+		Service            AppointmentServiceItem
+		Quantity           int
+		Room               Room
+	}
+
+	AppointmentServiceItem struct {
+		Id           string
+		Name         string
+		Display_name string
+		Price        struct {
+			Sales float32
+		}
+	}
+
+	AppointmentPackage struct {
+		Id    string
+		Name  string
+		Price struct {
+			Sales float32
+		}
+		Service              AppointmentService
+		Appointment_services []AppointmentService
+	}
+
 	Booking struct {
 		Id    string
 		Error struct {
@@ -157,7 +200,8 @@ type (
 		Appointments []Appointment
 	}
 
-	ZenotiStatus int
+	ZenotiStatus  int
+	InvoiceStatus int
 
 	ZenotiTime struct {
 		Time time.Time `jsont:"time,omitempty"`
@@ -262,6 +306,16 @@ const (
 	Closed    ZenotiStatus = 1
 	CheckedIn ZenotiStatus = 2
 	Confirmed ZenotiStatus = 4
+)
+
+const (
+	InvoiceOpen            InvoiceStatus = 0
+	InvoiceProcessed       InvoiceStatus = 1
+	InvoiceCampaignApplied InvoiceStatus = 2
+	InvoiceCouponApplied   InvoiceStatus = 3
+	InvoiceClosed          InvoiceStatus = 4
+	InvoiceNotSpecified    InvoiceStatus = 11
+	InvoiceVoided          InvoiceStatus = 99
 )
 
 var (

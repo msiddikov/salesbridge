@@ -143,4 +143,10 @@ type (
 		Notes      string
 		ZenotiId   string
 	}
+
+	Setting struct {
+		Key   string `gorm:"primaryKey"`
+		Value string
+		gorm.Model
+	}
 )

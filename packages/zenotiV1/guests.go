@@ -158,9 +158,9 @@ func (c *Client) GuestSearch(filter GuestFilter) ([]Guest, error) {
 	return res.Guests, err
 }
 
-func (c *Client) GuestsListAppointments(filter GuestAppointmentsFilter) ([]Appointment, PageInfo, error) {
+func (c *Client) GuestsListAppointments(filter GuestAppointmentsFilter) ([]AppointmentGroup, PageInfo, error) {
 	res := struct {
-		Appointments []Appointment
+		Appointments []AppointmentGroup
 		Page_info    PageInfo
 	}{}
 
