@@ -2,6 +2,7 @@ package integrations_zenoti
 
 import (
 	"client-runaway-zenoti/internal/runway"
+	svc_jpmreport "client-runaway-zenoti/internal/services/svc_jpmReport"
 	"client-runaway-zenoti/internal/tgbot"
 	"time"
 
@@ -47,4 +48,8 @@ func runDailyJobs() {
 	runway.CheckForNewLeads()
 	tgbot.Notify("Scheduled jobs", "Daily jobs ended", false)
 
+	svc_jpmreport.UpdateAllLocationsReportDataForLargePeriod(
+		time.Now().Add(36*time.Hour),
+		time.Now(),
+	)
 }

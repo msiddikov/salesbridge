@@ -149,4 +149,32 @@ type (
 		Value string
 		gorm.Model
 	}
+
+	JpmReportNewLead struct {
+		Date          time.Time
+		LocationId    string
+		Location      Location
+		Name          string
+		ContactId     string
+		OpportunityId string `gorm:"unique"`
+		Contact       Contact
+		Phone         string
+		Email         string
+		Source        string
+		GuestId       string
+		Invoices      []JpmReportInvoice `gorm:"foreignKey:GuestId;references:GuestId"`
+		gorm.Model
+	}
+
+	JpmReportInvoice struct {
+		Date       time.Time
+		InvoiceId  string `gorm:"unique"`
+		LocationId string
+		Location   Location
+		GuestId    string
+		Total      float64
+		IsConsult  bool
+		Status     string
+		gorm.Model
+	}
 )

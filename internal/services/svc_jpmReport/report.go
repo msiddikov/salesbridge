@@ -90,6 +90,7 @@ func GetReport(c *gin.Context) {
 	lvn.GinErr(c, 400, err, "Invalid start")
 	endDate, err := time.Parse("2006-01-02", endDateString)
 	lvn.GinErr(c, 400, err, "Invalid end")
+	endDate = endDate.Add(23*time.Hour + 59*time.Minute + 59*time.Second)
 
 	// build data
 	res := []ReportData{}
@@ -122,7 +123,7 @@ func getReportForLocation(loc models.Location, startDate, endDate time.Time, res
 		Label: loc.Name,
 	}
 	// get leads, appointments and collections for period
-	leadsData, err := getLeadsWithAppointments(loc, startDate, endDate)
+	leadsData, err := getLeadsWithAppointmentsDb(loc, startDate, endDate)
 	if err != nil {
 		return ReportData{}, err
 	}

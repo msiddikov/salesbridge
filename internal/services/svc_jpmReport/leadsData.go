@@ -8,6 +8,46 @@ import (
 	"time"
 )
 
+func getLeadsWithAppointmentsDb(loc models.Location, startDate, endDate time.Time) (leadsData []LeadRawData, err error) {
+
+	newLeads := []models.JpmReportNewLead{}
+	err = models.DB.
+		Where("location_id = ? AND date >= ? AND date <= ?",
+			loc.Id,
+			startDate,
+			endDate).
+		Preload("Invoices").
+		Find(&newLeads).Error
+	if err != nil {
+		return nil, err
+	}
+
+	for _, nl := range newLeads {
+		lead := LeadRawData{
+			Name:        nl.Name,
+			Source:      nl.Source,
+			CreatedDate: nl.Date,
+		}
+
+		for _, inv := range nl.Invoices {
+			lead.Appointments = append(lead.Appointments, LeadAppointment{
+				Date:  inv.Date,
+				Total: inv.Total,
+				Link:  loc.GetZenotiAppointmentLink(inv.InvoiceId),
+			})
+			lead.Revenue += inv.Total
+			lead.HadConsultation = true
+			if inv.Total > 0 {
+				lead.HadSale = true
+			}
+		}
+
+		leadsData = append(leadsData, lead)
+	}
+
+	return leadsData, nil
+}
+
 func getLeadsWithAppointments(loc models.Location, startDate, endDate time.Time) (leadsData []LeadRawData, err error) {
 
 	// Getting leads

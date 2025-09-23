@@ -54,6 +54,14 @@ func Migrate() {
 	if err != nil {
 		panic(err)
 	}
+	err = DB.AutoMigrate(&models.JpmReportInvoice{})
+	if err != nil {
+		panic(err)
+	}
+	err = DB.AutoMigrate(&models.JpmReportNewLead{})
+	if err != nil {
+		panic(err)
+	}
 
 	defContact := models.Contact{
 		LocationId:    "0",
