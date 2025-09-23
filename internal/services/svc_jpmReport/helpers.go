@@ -9,6 +9,19 @@ func calculateTotals(data []ReportData) []ReportData {
 	total.SourceBreakdown = make(map[string]SourceBreakdown)
 	total.Label = "Total"
 
+	if len(data) == 0 {
+		return data
+	}
+
+	// Initialize graph data structure
+	total.GraphData.Dates = data[0].GraphData.Dates
+	for _, ds := range data[0].GraphData.Values {
+		total.GraphData.Values = append(total.GraphData.Values, GraphDataset{
+			Label: ds.Label,
+			Data:  make([]float64, len(ds.Data)),
+		})
+	}
+
 	for _, d := range data {
 
 		// Aggregate core metrics
@@ -18,6 +31,7 @@ func calculateTotals(data []ReportData) []ReportData {
 		total.CoreMetrics.Revenue += d.CoreMetrics.Revenue
 
 		// Aggregate graph data
+		total.GraphData.Dates = d.GraphData.Dates
 		for _, ds := range d.GraphData.Values {
 			for i, tds := range total.GraphData.Values {
 				if ds.Label != tds.Label {
@@ -38,6 +52,7 @@ func calculateTotals(data []ReportData) []ReportData {
 			}
 
 			sb.Leads += v.Leads
+			sb.Source = v.Source
 			sb.Consultations += v.Consultations
 			sb.Revenue += v.Revenue
 			total.SourceBreakdown[k] = sb
