@@ -49,7 +49,7 @@ func runDailyJobs() {
 	tgbot.Notify("Scheduled jobs", "Daily jobs ended", false)
 
 	svc_jpmreport.UpdateAllLocationsReportDataForLargePeriod(
-		time.Now().Add(36*time.Hour),
+		time.Now().Add(-36*time.Hour),
 		time.Now(),
 	)
 }

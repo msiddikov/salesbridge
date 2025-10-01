@@ -11,6 +11,7 @@ import (
 	"time"
 
 	lvn "github.com/Lavina-Tech-LLC/lavinagopackage/v2"
+	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
 
@@ -33,6 +34,13 @@ func UpdateAllLocationsReportDataForLargePeriod(start, end time.Time) error {
 }
 
 func UpdateReportDataForLargePeriod(start, end time.Time, loc models.Location) error {
+	// first update guestIds for all leads without guestId
+	// update guestIds
+	err := updateGuestIds(loc)
+	if err != nil {
+		return err
+	}
+
 	// split the period into smaller chunks of 7 days
 	curStart := start
 	curEnd := start.Add(6 * 24 * time.Hour)
@@ -61,12 +69,6 @@ func UpdateReportDataForPeriod(start, end time.Time, l models.Location) error {
 		return err
 	}
 
-	// update guestIds
-	err = updateGuestIds(l)
-	if err != nil {
-		return err
-	}
-
 	// update new sales from zenoti
 	err = updateNewSales(start, end, l)
 	if err != nil {
@@ -80,6 +82,10 @@ func updateNewLeads(start, end time.Time, loc models.Location) error {
 	// Getting leads
 	svc := runway.GetSvc()
 	rcli, err := svc.NewClientFromId(loc.Id)
+	if err != nil {
+		return err
+	}
+	zcli, err := zenotiv1.NewClient(loc.Id, loc.ZenotiCenterId, loc.ZenotiApi)
 	if err != nil {
 		return err
 	}
@@ -105,10 +111,27 @@ func updateNewLeads(start, end time.Time, loc models.Location) error {
 			Source:        lead.Source,
 		}
 
-		// save to db, if opportunityId conflicts update all besides GuestId
+		// fill in guestId
+		dbLead := models.JpmReportNewLead{}
+		err = models.DB.Where("opportunity_id = ?", lead.Id).First(&dbLead).Error
+		if err != nil && err != gorm.ErrRecordNotFound {
+			return err
+		}
+
+		if dbLead.GuestId != "" {
+			reportLead.GuestId = dbLead.GuestId
+		} else {
+
+			guest, err := zcli.GuestsGetByPhoneEmail(reportLead.Phone, reportLead.Email)
+			if err == nil && len(guest) > 0 {
+				reportLead.GuestId = strings.ToLower(guest[0].Id)
+			}
+		}
+
+		// save to db, if opportunityId conflicts update all
 		err = models.DB.Clauses(clause.OnConflict{
 			Columns:   []clause.Column{{Name: "opportunity_id"}},
-			DoUpdates: clause.AssignmentColumns([]string{"date", "location_id", "name", "contact_id", "phone", "email", "source", "updated_at"}),
+			UpdateAll: true,
 		}).Create(&reportLead).Error
 
 		if err != nil {
@@ -132,12 +155,16 @@ func updateGuestIds(loc models.Location) error {
 	if err != nil {
 		return err
 	}
+	zcli, err := zenotiv1.NewClient(loc.Id, loc.ZenotiCenterId, loc.ZenotiApi)
+	if err != nil {
+		return err
+	}
 
 	for k, lead := range leads {
 		// update lead info first
 		opp, err := rcli.OpportunitiesGet(lead.OpportunityId)
-		if err != nil {
-			return err
+		if err != nil && !strings.Contains(err.Error(), "Opportunity doesn't exist or is deleted.") {
+			continue
 		}
 
 		lead.Name = opp.Name
@@ -146,7 +173,6 @@ func updateGuestIds(loc models.Location) error {
 		lead.Source = opp.Source
 
 		// get guestId from zenoti
-		zcli, err := zenotiv1.NewClient(loc.Id, loc.ZenotiCenterId, loc.ZenotiApi)
 
 		guest, err := zcli.GuestsGetByPhoneEmail(opp.Contact.Phone, opp.Contact.Email)
 		if err == nil && len(guest) > 0 {

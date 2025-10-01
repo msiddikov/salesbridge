@@ -1,6 +1,8 @@
 package svc_jpmreport
 
 import (
+	"math"
+
 	lvn "github.com/Lavina-Tech-LLC/lavinagopackage/v2"
 )
 
@@ -29,6 +31,14 @@ func calculateTotals(data []ReportData) []ReportData {
 		total.CoreMetrics.Booked += d.CoreMetrics.Booked
 		total.CoreMetrics.Sales += d.CoreMetrics.Sales
 		total.CoreMetrics.Revenue += d.CoreMetrics.Revenue
+
+		if total.CoreMetrics.Leads > 0 {
+			total.CoreMetrics.LeadsToBooked = math.Round(100 * float64(total.CoreMetrics.Booked) / float64(total.CoreMetrics.Leads))
+		}
+
+		if total.CoreMetrics.Booked > 0 {
+			total.CoreMetrics.BookedToSales = math.Round(100 * float64(total.CoreMetrics.Sales) / float64(total.CoreMetrics.Booked))
+		}
 
 		// Aggregate graph data
 		total.GraphData.Dates = d.GraphData.Dates

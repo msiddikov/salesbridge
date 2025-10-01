@@ -9,12 +9,12 @@ import (
 
 func TestUpdateData(t *testing.T) {
 	start, _ := time.Parse("2006-01-02", "2025-09-04")
-	end, _ := time.Parse("2006-01-02", "2025-09-05")
+	end, _ := time.Parse("2006-01-02", "2025-09-30")
 	locName := "Young Medical Spa - Lansdale"
 	loc := models.Location{}
 	models.DB.Where("name = ?", locName).First(&loc)
 
-	err := svc_jpmreport.UpdateReportDataForLargePeriod(start, end, loc)
+	err := svc_jpmreport.UpdateAllLocationsReportDataForLargePeriod(start, end)
 	if err != nil {
 		t.Errorf("Error updating report data: %v", err)
 	}
