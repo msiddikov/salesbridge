@@ -53,10 +53,10 @@ func UpdateStagesForLocation(l models.Location) {
 	}
 
 	// update Sales
-	err = UpdateSalesChunks(l)
-	if err != nil {
-		tgbot.Notify("Stages-errors", "Error in UpdateSales for "+l.Name+" "+err.Error(), false)
-	}
+	// err = UpdateSalesChunks(l)
+	// if err != nil {
+	// 	tgbot.Notify("Stages-errors", "Error in UpdateSales for "+l.Name+" "+err.Error(), false)
+	// }
 
 	tgbot.Notify("Stages", "Finished Update stages for "+l.Name+"...", false)
 }

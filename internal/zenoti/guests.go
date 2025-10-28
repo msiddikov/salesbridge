@@ -98,3 +98,16 @@ func GuestUpdatedWebhookHandler(WebhookBodyBytes []byte) error {
 
 	return nil
 }
+
+func AppointmentGroupCreatedWebhookHandler(WebhookBodyBytes []byte) error {
+	type WebhookBody struct {
+		Data zenotiv1.AppointmentGroupWebhookData `json:"data"`
+	}
+
+	var webhookBody WebhookBody
+	if err := json.Unmarshal(WebhookBodyBytes, &webhookBody); err != nil {
+		return err
+	}
+
+	return runway.UpdateApptGroup(webhookBody.Data)
+}

@@ -110,10 +110,11 @@ func TestScheduledJobs(t *testing.T) {
 }
 
 func TestUpdateSingleAppt(t *testing.T) {
-	apptId := "e513e6f2-881d-4b65-8426-c7c7156a69d4"
+	invId := "a2f7ffea-17fa-433e-baa8-3fbc5b788ffa"
+	date, _ := time.Parse("1/02/2006", "10/13/2025")
 
 	l := models.Location{}
-	locationName := "VIO Med Spa Fairlawn (DWY)"
+	locationName := "Young Medical Spa"
 	db.DB.Where("name = ?", locationName).First(&l)
 	if l.Id == "" {
 		t.Error("Location not found")
@@ -127,12 +128,23 @@ func TestUpdateSingleAppt(t *testing.T) {
 	rService := runway.GetSvc()
 	runwayCli, err := rService.NewClientFromId(l.Id)
 
-	appt, err := client.AppointmentsGetDetails(apptId)
+	neededAppt := zenotiv1.Appointment{}
+	appts, err := client.AppointmentsListAllAppointments(zenotiv1.AppointmentFilter{
+		StartDate: date.Add(-24 * time.Hour),
+		EndDate:   date.Add(24 * time.Hour),
+	})
+
+	for _, appt := range appts {
+		if appt.Invoice_id == invId {
+			neededAppt = appt
+		}
+	}
+
 	if err != nil {
 		t.Error(err)
 	}
 
-	err = runway.UpdateAppt(appt[0], l, runwayCli)
+	err = runway.UpdateAppt(neededAppt, l, runwayCli)
 	if err != nil {
 		t.Error(err)
 	}

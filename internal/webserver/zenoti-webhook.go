@@ -74,6 +74,12 @@ func zenotiWebhook(c *gin.Context) {
 			tgbot.Notify("Webhook Data", fmt.Sprintf("%s\nDATA: %s", err.Error(), string(bodyBytes)), true)
 		}
 		c.Data(lvn.Res(200, nil, "Success"))
+	case "AppointmentGroup.Created":
+		err = zenoti.AppointmentGroupCreatedWebhookHandler(bodyBytes)
+		if err != nil {
+			tgbot.Notify("Webhook Data", fmt.Sprintf("%s\nDATA: %s", err.Error(), string(bodyBytes)), true)
+		}
+		c.Data(lvn.Res(200, nil, "Success"))
 	default:
 		c.Data(lvn.Res(200, nil, "Success"))
 	}

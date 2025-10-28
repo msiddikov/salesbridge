@@ -92,6 +92,77 @@ func UpdateAppt(appt zenotiv1.Appointment, l models.Location, client runwayv2.Cl
 	return nil
 }
 
+func UpdateApptGroup(apptGrp zenotiv1.AppointmentGroupWebhookData) error {
+
+	l := models.Location{}
+	err := db.DB.Where("zenoti_center_id = ? and sync_contacts=true", apptGrp.Center_Id).First(&l).Error
+	if err != nil {
+		return nil
+	}
+
+	client, err := svc.NewClientFromId(l.Id)
+	if err != nil {
+		return err
+	}
+
+	zclient, err := zenotiv1.NewClient(l.Id, l.ZenotiCenterId, l.ZenotiApi)
+	if err != nil {
+		return err
+	}
+
+	guest, err := zclient.GuestsGetById(apptGrp.Guest.Id)
+	if err != nil {
+		return err
+	}
+
+	// Findding an opportunity
+	ops, err := client.OpportunitiesFindByEmailPhone(guest.Personal_info.Email, guest.Personal_info.Mobile_phone.Number, l.PipelineId)
+	if err != nil {
+		return err
+	}
+
+	// skipping if no opportunity found
+	if len(ops) == 0 {
+		return nil
+	}
+	op := ops[0]
+
+	hasUnregistered := false
+	for _, appt := range apptGrp.Appointments {
+		wasAlreadyRegistered, err := registerBooking(op.Contact.Id, apptGrp.Invoice_id, appt.Start_time.Time, l)
+		if err != nil {
+			return err
+		}
+
+		if !wasAlreadyRegistered {
+			hasUnregistered = true
+		}
+	}
+
+	// if no unregistered appointments, no need to update the stage
+	if !hasUnregistered {
+		return nil
+	}
+
+	rightStage := l.BookId
+
+	if op.PipelineStageId == rightStage ||
+		op.PipelineStageId == l.SalesId || op.PipelineStageId == l.MemberId {
+		return nil
+	}
+
+	op.PipelineStageId = rightStage
+
+	req := runwayv2.OpportunityUpdateReq{}
+	copier.Copy(&req, &op)
+	_, err = client.OpportunitiesUpdate(req, op.Id)
+
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func UpdateSales(c []zenotiv1.Collection, l models.Location) error {
 	client, err := svc.NewClientFromId(l.Id)
 	if err != nil {
