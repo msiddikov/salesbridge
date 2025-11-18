@@ -2,9 +2,11 @@ package webServer
 
 import (
 	"client-runaway-zenoti/internal/runway"
+	"client-runaway-zenoti/internal/services/automator"
 	"client-runaway-zenoti/internal/tgbot"
 	"client-runaway-zenoti/internal/zenoti"
 	zenotiv1 "client-runaway-zenoti/packages/zenotiV1"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -79,6 +81,10 @@ func zenotiWebhook(c *gin.Context) {
 		if err != nil {
 			tgbot.Notify("Webhook Data", fmt.Sprintf("%s\nDATA: %s", err.Error(), string(bodyBytes)), true)
 		}
+
+		err = automator.ZenotiTriggerAppointmentCreated(context.Background(), bodyBytes)
+		lvn.GinErr(c, 500, err, "error in automation")
+
 		c.Data(lvn.Res(200, nil, "Success"))
 	default:
 		c.Data(lvn.Res(200, nil, "Success"))

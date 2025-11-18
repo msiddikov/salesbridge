@@ -19,6 +19,15 @@ type (
 		Query      string
 	}
 
+	OpportunitiesAdvancedFilter struct {
+		LocationId  string   `json:"locationId,omitempty"`
+		Query       string   `json:"query,omitempty"`
+		Limit       int      `json:"limit,omitempty"`
+		Page        int      `json:"page,omitempty"`
+		SearchAfter []string `json:"searchAfter,omitempty"`
+		Filters     []Filter `json:"filters,omitempty"`
+	}
+
 	OpportunitiesSearchFilter struct {
 		LocationId      string
 		ContactId       string
@@ -27,12 +36,18 @@ type (
 	}
 
 	OpportunityUpdateReq struct {
-		PipelineId      string            `json:"pipelineId"`
-		Name            string            `json:"name"`
-		PipelineStageId string            `json:"pipelineStageId"`
-		Status          OpportunityStatus `json:"status"`
-		MonetaryValue   float64           `json:"monetaryValue"`
-		AssignedTo      string            `json:"assignedTo"`
+		UpdatePipelineId      bool
+		PipelineId            string
+		UpdateName            bool
+		Name                  string
+		UpdatePipelineStageId bool
+		PipelineStageId       string
+		UpdateStatus          bool
+		Status                OpportunityStatus
+		UpdateMonetaryValue   bool
+		MonetaryValue         float64
+		UpdateAssignedTo      bool
+		AssignedTo            string
 	}
 
 	OpportunityCreateReq struct {
@@ -191,7 +206,9 @@ func (a *Client) OpportunitiesUpdate(req OpportunityUpdateReq, id string) (Oppor
 		Opportunity Opportunity
 	}{}
 
-	body, err := json.Marshal(req)
+	mapReq := req.MapToParams()
+
+	body, err := json.Marshal(mapReq)
 	if err != nil {
 		return Opportunity{}, err
 	}
@@ -238,6 +255,27 @@ func (a *Client) getOpportunitiesByMeta(filter OpportunitiesFilter, meta Meta) (
 	}, &res)
 
 	return res.Opportunities, res.Meta, err
+
+}
+
+func (a *Client) OpportunitiesGetByPagination(filter OpportunitiesAdvancedFilter) ([]Opportunity, int, error) {
+	res := struct {
+		Opportunities []Opportunity
+		Total         int
+	}{}
+
+	bodyBytes, err := json.Marshal(filter)
+	if err != nil {
+		return []Opportunity{}, 0, err
+	}
+
+	_, _, err = a.fetch(reqParams{
+		Method:   "POST",
+		Endpoint: "/opportunities/search",
+		Body:     string(bodyBytes),
+	}, &res)
+
+	return res.Opportunities, res.Total, err
 
 }
 
@@ -333,6 +371,36 @@ func (f *OpportunitiesSearchFilter) GetQParams() []queryParam {
 			Key:   "pipeline_stage_id",
 			Value: f.PipelineStageId,
 		})
+	}
+
+	return params
+}
+
+func (req *OpportunityUpdateReq) MapToParams() map[string]interface{} {
+	params := make(map[string]interface{})
+
+	if req.UpdatePipelineId {
+		params["pipelineId"] = req.PipelineId
+	}
+
+	if req.UpdateName {
+		params["name"] = req.Name
+	}
+
+	if req.UpdatePipelineStageId {
+		params["pipelineStageId"] = req.PipelineStageId
+	}
+
+	if req.UpdateStatus {
+		params["status"] = req.Status
+	}
+
+	if req.UpdateMonetaryValue {
+		params["monetaryValue"] = req.MonetaryValue
+	}
+
+	if req.UpdateAssignedTo {
+		params["assignedTo"] = req.AssignedTo
 	}
 
 	return params

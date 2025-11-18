@@ -12,8 +12,8 @@ import (
 
 var corsMiddleware = cors.New(cors.Config{
 	//AllowOrigins:     allowedOrigins,
-	AllowMethods:     []string{"GET"},
-	AllowHeaders:     []string{"Origin", "Content-Length", "Content-type"},
+	AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
+	AllowHeaders:     []string{"Origin", "Content-Length", "Content-type", "Authorization"},
 	ExposeHeaders:    []string{"Content-Length", "Content-type"},
 	AllowCredentials: true,
 	AllowOriginFunc:  checkOrigin,

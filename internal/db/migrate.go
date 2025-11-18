@@ -6,10 +6,14 @@ import (
 )
 
 func Migrate() {
-	err := DB.AutoMigrate(&models.Chat{})
+	err := DB.AutoMigrate(
+		&models.Chat{},
+		&models.ChatMessage{},
+	)
 	if err != nil {
 		panic(err)
 	}
+
 	err = DB.AutoMigrate(&models.ChatMessage{})
 	if err != nil {
 		panic(err)
@@ -59,6 +63,33 @@ func Migrate() {
 		panic(err)
 	}
 	err = DB.AutoMigrate(&models.JpmReportNewLead{})
+	if err != nil {
+		panic(err)
+	}
+
+	err = DB.AutoMigrate(
+		&models.Automation{},
+		&models.Node{},
+		&models.Edge{},
+		&models.AutomationRun{},
+		&models.AutomationRunNode{},
+		&models.AutomationBatchRun{},
+	)
+
+	if err != nil {
+		panic(err)
+	}
+
+	err = DB.AutoMigrate(
+		&models.Person{},
+		&models.AttributionFlow{},
+		&models.StageHit{},
+	)
+	if err != nil {
+		panic(err)
+	}
+
+	err = DB.AutoMigrate(&models.Profile{}, &models.User{})
 	if err != nil {
 		panic(err)
 	}

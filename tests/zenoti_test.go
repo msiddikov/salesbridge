@@ -2,6 +2,7 @@ package tests
 
 import (
 	"client-runaway-zenoti/internal/zenoti"
+	zenotiv1 "client-runaway-zenoti/packages/zenotiV1"
 	"fmt"
 	"testing"
 )
@@ -12,4 +13,13 @@ func TestGetZenotiLink(t *testing.T) {
 
 	link := zenoti.GuestsGetLinkByIdLocationId(guestId, locId)
 	fmt.Println(link)
+}
+
+func TestGetCenters(t *testing.T) {
+	api := "db42ef1415b24d6792076776c11bdb3dd62ce56639b84d50aa104c2bed6796ee"
+	centers, err := zenotiv1.CentersListAll(api)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fmt.Printf("Found %d centers\n", len(centers))
 }
