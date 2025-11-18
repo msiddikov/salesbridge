@@ -71,28 +71,34 @@ type (
 
 	Location struct {
 		Name               string
-		Id                 string `gorm:"primaryKey"`
-		PipelineId         string
-		NewId              string
-		BookId             string
-		SalesId            string
-		NoShowsId          string
-		ShowNoSaleId       string
-		MemberId           string
-		TrackNewLeads      bool
-		ZenotiApi          string
-		ZenotiUrl          string
-		ZenotiCenterId     string
-		ZenotiCenterName   string
-		ZenotiServiceId    string
-		ZenotiServiceName  string
-		ZenotiServicePrice float32
-		SyncCalendars      bool
-		SyncContacts       bool
-		AutoCreateContacts bool
-		ForceCheck         bool
-		SalesSyncDate      time.Time
-		Rank               int64
+		Id                 string    `gorm:"primaryKey"`
+		PipelineId         string    // legacy
+		NewId              string    // legacy
+		BookId             string    // legacy
+		SalesId            string    // legacy
+		NoShowsId          string    // legacy
+		ShowNoSaleId       string    // legacy
+		MemberId           string    // legacy
+		TrackNewLeads      bool      // legacy
+		ZenotiApi          string    // legacy
+		ZenotiUrl          string    // legacy
+		ZenotiServiceId    string    // legacy
+		ZenotiServiceName  string    // legacy
+		ZenotiServicePrice float32   // legacy
+		SyncCalendars      bool      // legacy
+		SyncContacts       bool      // legacy
+		AutoCreateContacts bool      // legacy
+		ForceCheck         bool      // legacy
+		SalesSyncDate      time.Time // legacy
+		Rank               int64     // legacy
+		ProfileID          uint
+		Profile            Profile
+
+		// Zenoti Integration
+		ZenotiCenterId   string
+		ZenotiCenterName string
+		ZenotiApiObjId   uint
+		ZenotiApiObj     ZenotiApi
 	}
 
 	GhlTrigger struct {

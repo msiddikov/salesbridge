@@ -1,6 +1,9 @@
 package runwayv2
 
-import "time"
+import (
+	"encoding/json"
+	"time"
+)
 
 type (
 	Contact struct {
@@ -35,10 +38,10 @@ type (
 	}
 
 	ContactDndSetting struct {
-		Status contactDndStatus `json:"status,omitempty"`
+		Status ContactDndStatus `json:"status,omitempty"`
 	}
 
-	contactDndStatus string
+	ContactDndStatus string
 
 	CustomFieldValue struct {
 		Id          string
@@ -50,6 +53,13 @@ type (
 		StartAfterId string
 		StartAfter   int
 		Total        int
+		Page         int
+	}
+
+	Pagination struct {
+		Limit int `json:"limit,omitempty"`
+		Page  int `json:"currentPage,omitempty"`
+		Total int `json:"total,omitempty"`
 	}
 
 	Note struct {
@@ -184,7 +194,98 @@ type (
 		Extras      TriggerSubscriptionExtra       `json:"extras,omitempty"`
 		Meta        TriggersSubscriptionMeta       `json:"meta,omitempty"`
 	}
+
+	Filter struct {
+		Group    string `json:"group,omitempty"`
+		Field    string `json:"field,omitempty"`
+		Operator string `json:"operator,omitempty"`
+		// Value is used when a single value is provided.
+		Value string `json:"-"`
+		// ValueRange is used when a range/object is provided for the value.
+		ValueRange map[string]string `json:"-"`
+		Filters    []Filter          `json:"filters,omitempty"`
+	}
 )
+
+// MarshalJSON implements custom JSON marshaling for Filter so that the
+// "value" key contains either the string Value (when non-empty) or the
+// object ValueRange (when Value is empty). Other zero-value fields are
+// omitted like normal `omitempty` behaviour.
+func (f Filter) MarshalJSON() ([]byte, error) {
+	m := map[string]interface{}{}
+	if f.Group != "" {
+		m["group"] = f.Group
+	}
+	if f.Field != "" {
+		m["field"] = f.Field
+	}
+	if f.Operator != "" {
+		m["operator"] = f.Operator
+	}
+	// value: prefer Value if non-empty, otherwise ValueRange if present
+	if f.Value != "" {
+		m["value"] = f.Value
+	} else if len(f.ValueRange) > 0 {
+		m["value"] = f.ValueRange
+	}
+	if len(f.Filters) > 0 {
+		m["filters"] = f.Filters
+	}
+	return json.Marshal(m)
+}
+
+// UnmarshalJSON supports reading a Filter where the "value" key may be a
+// string or an object. It will populate Value or ValueRange accordingly.
+func (f *Filter) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+
+	// helper to unmarshal string fields
+	var s string
+	if v, ok := raw["group"]; ok {
+		if err := json.Unmarshal(v, &s); err == nil {
+			f.Group = s
+		}
+	}
+	if v, ok := raw["field"]; ok {
+		if err := json.Unmarshal(v, &s); err == nil {
+			f.Field = s
+		}
+	}
+	if v, ok := raw["operator"]; ok {
+		if err := json.Unmarshal(v, &s); err == nil {
+			f.Operator = s
+		}
+	}
+
+	// value can be either string or object
+	if v, ok := raw["value"]; ok {
+		// try string first
+		var str string
+		if err := json.Unmarshal(v, &str); err == nil {
+			f.Value = str
+		} else {
+			// try object
+			var obj map[string]string
+			if err := json.Unmarshal(v, &obj); err == nil {
+				f.ValueRange = obj
+			} else {
+				// unknown type: ignore
+			}
+		}
+	}
+
+	if v, ok := raw["filters"]; ok {
+		var ff []Filter
+		if err := json.Unmarshal(v, &ff); err == nil {
+			f.Filters = ff
+		}
+	}
+
+	return nil
+}
 
 const (
 	OpportunityStatusOpen      OpportunityStatus = "open"
@@ -199,9 +300,9 @@ func (m *Meta) isZero() bool {
 }
 
 const (
-	ContactDndStatusActive    contactDndStatus = "active"
-	ContactDndStatusInactive  contactDndStatus = "inactive"
-	ContactDndStatusPermanent contactDndStatus = "permanent"
+	ContactDndStatusActive    ContactDndStatus = "active"
+	ContactDndStatusInactive  ContactDndStatus = "inactive"
+	ContactDndStatusPermanent ContactDndStatus = "permanent"
 )
 
 const (

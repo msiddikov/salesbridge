@@ -145,15 +145,29 @@ func TestGetOppoertunities(t *testing.T) {
 	svc := runway.GetSvc()
 	client, _ := svc.NewClientFromId(loc.Id)
 
-	opportunities, err := client.OpportunitiesGetAll(runwayv2.OpportunitiesFilter{
-		PipelineId: loc.PipelineId,
-		StartDate:  startDateTime,
-		EndDate:    endDateTime,
-	})
+	filter := runwayv2.OpportunitiesAdvancedFilter{
+		LocationId: loc.Id,
+		Limit:      100,
+		Filters: []runwayv2.Filter{
+			{
+				Field:    "date_added",
+				Operator: "range",
+				ValueRange: map[string]string{
+					"gte": startDateTime.Format(time.RFC3339),
+					"lte": endDateTime.Format(time.RFC3339),
+				},
+			},
+		},
+		Page: 1,
+	}
+
+	opportunities, meta, err := client.OpportunitiesGetByPagination(filter)
 
 	if err != nil {
+		fmt.Println(err.Error())
 		t.Error(err)
 	}
 
 	fmt.Println(len(opportunities))
+	fmt.Println(meta)
 }

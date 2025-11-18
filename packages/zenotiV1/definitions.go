@@ -135,12 +135,14 @@ type (
 	}
 
 	AppointmentGroupAppointment struct {
-		Appointment_Id string
-		Start_time     ZenotiTime
-		End_time       ZenotiTime
-		Status         ZenotiStatus
-		Service_id     string
-		Service_Name   string
+		Appointment_Id       string
+		Start_time           ZenotiTime
+		End_time             ZenotiTime
+		Start_time_in_center ZenotiTime
+		End_time_in_center   ZenotiTime
+		Status               ZenotiStatus
+		Service_id           string
+		Service_Name         string
 	}
 
 	AppointmentGroupGuest struct {
