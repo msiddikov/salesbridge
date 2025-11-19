@@ -174,6 +174,15 @@ func StartAutomationsForCollection(ctx context.Context, dbNode models.Node, batc
 
 	collection := []map[string]interface{}{}
 	nodeConfig := node.Config.EdgeConfig("")
+
+	// for date-based pagination, ensure pages are set
+	if _, ok := nodeConfig["pageFrom"]; !ok {
+		nodeConfig["pageFrom"] = float64(1)
+	}
+	if _, ok := nodeConfig["pageTo"]; !ok {
+		nodeConfig["pageTo"] = float64(0)
+	}
+
 	nodeConfig["page"] = nodeConfig["pageFrom"]
 	limit, ok := nodeConfig["limit"].(float64)
 	if !ok || limit < 1 {
@@ -186,7 +195,7 @@ func StartAutomationsForCollection(ctx context.Context, dbNode models.Node, batc
 		}
 	}
 
-	collection, totalItems, err := catalogNode.CollectorFunc(ctx, nodeConfig, automation.Location)
+	collection, totalItems, hasMore, err := catalogNode.CollectorFunc(ctx, nodeConfig, automation.Location)
 	if err != nil {
 		errorRunTime.runStatus.ErrorMessage = fmt.Sprintf("automator: collect data for collection node: %s", err.Error())
 		db.DB.Save(&errorRunTime.runStatus)
@@ -204,7 +213,7 @@ func StartAutomationsForCollection(ctx context.Context, dbNode models.Node, batc
 	batchRun.PageTo = &pageTo
 	db.DB.Save(&batchRun)
 
-	for len(collection) > 0 || nodeConfig["page"].(float64) < nodeConfig["pageTo"].(float64) {
+	for (len(collection) == 0 && hasMore) || (len(collection) > 0) || (nodeConfig["page"].(float64) < nodeConfig["pageTo"].(float64) && nodeConfig["pageTo"].(float64) != 0) {
 		if ctx.Err() != nil {
 			now := time.Now()
 			batchRun.Status = models.BatchRunCanceled
@@ -281,10 +290,10 @@ func StartAutomationsForCollection(ctx context.Context, dbNode models.Node, batc
 		}
 
 		nodeConfig["page"] = nodeConfig["page"].(float64) + 1
-		if nodeConfig["page"].(float64) > nodeConfig["pageTo"].(float64) {
+		if nodeConfig["page"].(float64) > nodeConfig["pageTo"].(float64) && nodeConfig["pageTo"].(float64) != 0 {
 			break
 		}
-		collection, _, err = catalogNode.CollectorFunc(ctx, nodeConfig, automation.Location)
+		collection, _, hasMore, err = catalogNode.CollectorFunc(ctx, nodeConfig, automation.Location)
 		if err != nil {
 			errorRunTime.runStatus.ErrorMessage = fmt.Sprintf("automator: collect data for collection node: %s", err.Error())
 			db.DB.Save(&errorRunTime.runStatus)

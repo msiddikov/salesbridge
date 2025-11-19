@@ -111,6 +111,7 @@ type (
 		Status        ZenotiStatus
 		Therapist     Therapist
 		BlockOut      BlockOut
+		Service       AppointmentServiceItem
 	}
 
 	AppointmentGroup struct {

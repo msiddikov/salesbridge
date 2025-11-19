@@ -63,6 +63,10 @@ func zenotiWebhook(c *gin.Context) {
 			tgbot.Notify("Webhook Data", fmt.Sprintf("%s\nDATA: %s", err.Error(), string(bodyBytes)), true)
 			panic(err)
 		}
+
+		err = automator.ZenotiTriggerInvoiceClosed(context.Background(), bodyBytes)
+		lvn.GinErr(c, 500, err, "error in automation")
+
 		c.Data(lvn.Res(200, nil, "Success"))
 	case "Guest.Created":
 		err = zenoti.GuestCreatedWebhookHandler(bodyBytes)

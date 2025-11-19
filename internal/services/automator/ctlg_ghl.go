@@ -12,8 +12,10 @@ import (
 var (
 	// GHL Category
 	ghlCategory = Category{
-		Id:   "ghl",
-		Name: "GoHighLevel",
+		Id:    "ghl",
+		Name:  "GoHighLevel",
+		Icon:  "ri:share-forward-2",
+		Color: "#4C6FFF",
 		Nodes: []Node{
 			ghlTriggerOpportunityCreated,
 
@@ -49,8 +51,7 @@ var (
 		Title:       "Opportunity Created",
 		Description: "Triggers when a new opportunity is created in GoHighLevel.",
 		Type:        NodeTypeTrigger,
-		Icon:        "ri:form",
-		Color:       ColorTrigger,
+		Icon:        "ri:file-add-line",
 		Ports: []NodePort{
 			{
 				Name:    "out",
@@ -69,8 +70,7 @@ var (
 		Description:   "Selects a Collection of Opportunities from GoHighLevel.",
 		Type:          NodeTypeCollection,
 		CollectorFunc: ghlCollectionGetOpportunities,
-		Icon:          "ri:stack",
-		Color:         ColorDefault,
+		Icon:          "ri:stack-line",
 		Ports: []NodePort{
 			{
 				Name:    "out",
@@ -105,7 +105,8 @@ var (
 		Description: "Finds an Opportunity in GoHighLevel by phone or email.",
 		ExecFunc:    ghlFindOpportunityByEmailOrPhone,
 		Type:        NodeTypeAction,
-		Icon:        "ri:form",
+		Icon:        "ri:search-2-line",
+		Kind:        "Opportunities",
 		Color:       ColorAction,
 		Ports: []NodePort{
 			customPort("found", ghlOpportunityNodeFields),
@@ -125,7 +126,8 @@ var (
 		Description: "Creates Opportunity in GoHighLevel.",
 		ExecFunc:    ghlCreateOpportunity,
 		Type:        NodeTypeAction,
-		Icon:        "ri:form",
+		Icon:        "ri:file-add-line",
+		Kind:        "Opportunities",
 		Color:       ColorAction,
 		Ports: []NodePort{
 			successPort(ghlOpportunityNodeFields),
@@ -140,7 +142,8 @@ var (
 		Description: "Updates Opportunity in GoHighLevel.",
 		ExecFunc:    ghlActionsUpdateOpportunity,
 		Type:        NodeTypeAction,
-		Icon:        "ri:form",
+		Icon:        "ri:file-edit-line",
+		Kind:        "Opportunities",
 		Color:       ColorAction,
 		Ports: []NodePort{
 			successPort(ghlOpportunityNodeFields),
@@ -148,13 +151,15 @@ var (
 		},
 		Fields: ghlOpportunityUpdateFields,
 	}
+
 	ghlActionMergeOpportunity = Node{
 		Id:          "ghl.opportunity.merge",
 		Title:       "Merge Opportunities",
 		Description: "Merges Opportunities in GoHighLevel.",
-		ExecFunc:    ghlActionsMergeOpportunity,
+		ExecFunc:    mergeActionFunc,
 		Type:        NodeTypeAction,
-		Icon:        "ri:form",
+		Icon:        "ri:git-fork-line",
+		Kind:        "Opportunities",
 		Color:       ColorAction,
 		Ports: []NodePort{
 			successPort(ghlOpportunityNodeFields),
@@ -172,7 +177,8 @@ var (
 		Description: "Finds a Contact in GoHighLevel by phone or email.",
 		ExecFunc:    ghlFindContactByEmailOrPhone,
 		Type:        NodeTypeAction,
-		Icon:        "ri:form",
+		Icon:        "ri:search-2-line",
+		Kind:        "Contacts",
 		Color:       ColorAction,
 		Ports: []NodePort{
 			customPort("found", ghlContactFields),
@@ -191,7 +197,8 @@ var (
 		Description: "Creates Contact in GoHighLevel.",
 		ExecFunc:    ghlCreateContact,
 		Type:        NodeTypeAction,
-		Icon:        "ri:form",
+		Icon:        "ri:file-add-line",
+		Kind:        "Contacts",
 		Color:       ColorAction,
 		Ports: []NodePort{
 			successPort(ghlContactFields),
@@ -206,7 +213,8 @@ var (
 		Description: "Updates Contact in GoHighLevel.",
 		ExecFunc:    ghlUpdateContact,
 		Type:        NodeTypeAction,
-		Icon:        "ri:form",
+		Icon:        "ri:file-edit-line",
+		Kind:        "Contacts",
 		Color:       ColorAction,
 		Ports: []NodePort{
 			successPort(ghlContactFields),
@@ -225,7 +233,8 @@ var (
 		Description: "Deletes Contact Notes in GoHighLevel.",
 		Type:        NodeTypeAction,
 		ExecFunc:    ghlActionsDeleteNotes,
-		Icon:        "ri:form",
+		Icon:        "ri:file-reduce-line",
+		Kind:        "Notes",
 		Color:       ColorAction,
 		Ports: []NodePort{
 			{
@@ -250,7 +259,8 @@ var (
 		Description: "Updates Link Note in GoHighLevel.",
 		ExecFunc:    ghlActionsUpdateLinkNote,
 		Type:        NodeTypeAction,
-		Icon:        "ri:form",
+		Icon:        "ri:file-edit-line",
+		Kind:        "Notes",
 		Color:       ColorAction,
 		Ports: []NodePort{
 			{
@@ -273,7 +283,8 @@ var (
 		Description: "Registers Booking Note in GoHighLevel.",
 		ExecFunc:    ghlActionsRegisterBookingNote,
 		Type:        NodeTypeAction,
-		Icon:        "ri:form",
+		Icon:        "ri:calendar-check-line",
+		Kind:        "Notes",
 		Color:       ColorAction,
 		Ports: []NodePort{
 			{
@@ -297,7 +308,8 @@ var (
 		Description: "Registers Sales Note in GoHighLevel.",
 		ExecFunc:    ghlActionsRegisterSalesNote,
 		Type:        NodeTypeAction,
-		Icon:        "ri:form",
+		Icon:        "ri:exchange-dollar-line",
+		Kind:        "Notes",
 		Color:       ColorAction,
 		Ports: []NodePort{
 			{
@@ -479,10 +491,10 @@ func GhlTriggerOpportunityCreated(ctx context.Context, opportunity runwayv2.Oppo
 	return err
 }
 
-func ghlCollectionGetOpportunities(ctx context.Context, fields map[string]interface{}, l models.Location) ([]map[string]interface{}, int, error) {
+func ghlCollectionGetOpportunities(ctx context.Context, fields map[string]interface{}, l models.Location) ([]map[string]interface{}, int, bool, error) {
 	cli, err := svc.NewClientFromId(l.Id)
 	if err != nil {
-		return nil, 0, err
+		return nil, 0, false, err
 	}
 
 	page, ok := fields["page"].(float64)
@@ -551,7 +563,7 @@ func ghlCollectionGetOpportunities(ctx context.Context, fields map[string]interf
 
 	opps, total, err := cli.OpportunitiesGetByPagination(filter)
 	if err != nil {
-		return nil, 0, err
+		return nil, 0, false, err
 	}
 
 	res := []map[string]interface{}{}
@@ -560,7 +572,7 @@ func ghlCollectionGetOpportunities(ctx context.Context, fields map[string]interf
 		res = append(res, payload)
 	}
 
-	return res, total, nil
+	return res, total, len(res) != 0, nil
 }
 
 func ghlActionsUpdateOpportunity(ctx context.Context, fields map[string]interface{}, l models.Location) (payload map[string]map[string]interface{}) {
@@ -635,10 +647,6 @@ func ghlCreateOpportunity(ctx context.Context, fields map[string]interface{}, l 
 	}
 
 	return successPayload(mapGhlOpportunityToNodePayload(opp))
-}
-
-func ghlActionsMergeOpportunity(ctx context.Context, fields map[string]interface{}, l models.Location) (payload map[string]map[string]interface{}) {
-	return successPayload(fields)
 }
 
 //////////////////////////////////////////////////

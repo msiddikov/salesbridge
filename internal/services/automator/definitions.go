@@ -19,16 +19,19 @@ type (
 	Category struct {
 		Id    string
 		Name  string
+		Icon  string
+		Color string
 		Nodes []Node
 	}
 
 	Node struct {
 		Id            string
-		ExecFunc      func(context.Context, map[string]interface{}, models.Location) map[string]map[string]interface{}      `json:"-"`
-		CollectorFunc func(context.Context, map[string]interface{}, models.Location) ([]map[string]interface{}, int, error) `json:"-"`
+		ExecFunc      func(context.Context, map[string]interface{}, models.Location) map[string]map[string]interface{}            `json:"-"`
+		CollectorFunc func(context.Context, map[string]interface{}, models.Location) ([]map[string]interface{}, int, bool, error) `json:"-"`
 		Title         string
 		Description   string
 		Type          NodeType
+		Kind          string
 		Icon          string
 		Color         string
 		Fields        []NodeField
@@ -56,11 +59,6 @@ const (
 	NodeTypeTrigger    NodeType = "trigger"
 	NodeTypeAction     NodeType = "action"
 	NodeTypeCollection NodeType = "collection"
-
-	// Colors
-	ColorTrigger = "#FF5733"
-	ColorAction  = "#33C1FF"
-	ColorDefault = "#4C6FFF"
 )
 
 var (

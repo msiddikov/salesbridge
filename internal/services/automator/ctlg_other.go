@@ -13,11 +13,14 @@ var (
 
 	// Others category
 	othersCategory = Category{
-		Id:   "others",
-		Name: "Others",
+		Id:    "others",
+		Name:  "Others",
+		Icon:  "ri:pencil-ruler-2-line",
+		Color: "#FFB020",
 		Nodes: []Node{
 			othersActionDelay,
 			othersActionCondition,
+			othersActionTransformNumber,
 		},
 	}
 
@@ -47,8 +50,8 @@ var (
 		Icon:        "ri:divide-line",
 		Color:       ColorDefault,
 		Ports: []NodePort{
-			customPort("true", othersConditionNodeFields),
-			customPort("false", othersConditionNodeFields),
+			customPort("true", othersTransformationNodeFields),
+			customPort("false", othersTransformationNodeFields),
 		},
 		Fields: []NodeField{
 			{Key: "left", Type: "string", Required: true},
@@ -60,11 +63,11 @@ var (
 	//////////////////////////////////////////////////
 	//                  Node Fields
 	///////////////////////////////////////////////////
-	othersConditionNodeFields = []NodeField{
+	othersTransformationNodeFields = []NodeField{
 		{Key: "left", Label: "Left Value", Type: "string"},
 		{Key: "operator", Label: "Operator", Type: "string"},
 		{Key: "right", Label: "Right Value", Type: "string"},
-		{Key: "result", Label: "Result", Type: "bool"},
+		{Key: "result", Label: "Result", Type: "string"},
 	}
 )
 
@@ -140,4 +143,67 @@ func toFloat(value interface{}) (float64, bool) {
 	default:
 		return 0, false
 	}
+}
+
+func toString(value interface{}) string {
+	return fmt.Sprint(value)
+}
+
+var othersActionTransformNumber = Node{
+	Id:          "others.transform.number",
+	Title:       "Transform Number",
+	Description: "Transforms a value to a number.",
+	ExecFunc:    othersTransformNumber,
+	Type:        NodeTypeAction,
+	Icon:        "ri:divide-line",
+	Color:       ColorDefault,
+	Ports: []NodePort{
+		successPort(othersTransformationNodeFields),
+		errorPort,
+	},
+	Fields: []NodeField{
+		{Key: "left", Type: "string", Required: true},
+		{Key: "operator", Type: "string", Required: true, SelectOptions: []string{"add", "subtract", "multiply", "divide"}},
+		{Key: "right", Type: "string", Required: true},
+	},
+}
+
+func othersTransformNumber(ctx context.Context, fields map[string]interface{}, l models.Location) (payload map[string]map[string]interface{}) {
+	lv, ok := toFloat(fields["left"])
+	if !ok {
+		return errorPayload(fmt.Errorf("unable to parse left value"), "error")
+	}
+
+	rv, ok := toFloat(fields["right"])
+	if !ok {
+		return errorPayload(fmt.Errorf("unable to parse right value"), "error")
+	}
+
+	operator, _ := fields["operator"].(string)
+
+	var result float64
+
+	switch operator {
+	case "add":
+		result = lv + rv
+	case "subtract":
+		result = lv - rv
+	case "multiply":
+		result = lv * rv
+	case "divide":
+		if rv != 0 {
+			result = lv / rv
+		} else {
+			return errorPayload(fmt.Errorf("division by zero"), "error")
+		}
+	}
+
+	payloadData := map[string]interface{}{
+		"left":     fields["left"],
+		"right":    fields["right"],
+		"operator": fields["operator"],
+		"result":   fmt.Sprintf("%v", result),
+	}
+
+	return successPayload(payloadData)
 }

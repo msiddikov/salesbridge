@@ -20,7 +20,11 @@ func (l *Location) Save() error {
 }
 
 func (l *Location) GetZenotiAppointmentLink(id string) string {
-	return l.ZenotiUrl + "/Appointment/DlgAppointment1.aspx?invoiceid=" + id
+	url := l.ZenotiApiObj.Url
+	if url == "" {
+		url = l.ZenotiUrl
+	}
+	return url + "/Appointment/DlgAppointment1.aspx?invoiceid=" + id
 }
 
 func (l *Location) GetGhlTokensInstance() (GhlTokens, error) {

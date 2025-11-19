@@ -106,5 +106,6 @@ var (
 )
 
 func GetCatalog(c *gin.Context) {
-	c.Data(lvn.Res(200, getCatalogWithImplementedNodes(catalogFull), "OK"))
+	cat := designCatalog(catalogFull)
+	c.Data(lvn.Res(200, getCatalogWithImplementedNodes(cat), "OK"))
 }

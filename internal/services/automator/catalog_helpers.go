@@ -1,6 +1,8 @@
 package automator
 
 import (
+	"client-runaway-zenoti/internal/db/models"
+	"context"
 	"sync"
 )
 
@@ -92,4 +94,8 @@ func getCatalogWithImplementedNodes(cat Catalog) Catalog {
 	}
 	return res
 
+}
+
+func mergeActionFunc(ctx context.Context, fields map[string]interface{}, l models.Location) (payload map[string]map[string]interface{}) {
+	return successPayload(fields)
 }
