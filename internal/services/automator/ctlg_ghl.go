@@ -335,7 +335,7 @@ var (
 	ghlOpportunityNodeFields = []NodeField{
 		{Key: "opportunityId", Type: "string"},
 		{Key: "opportunityName", Type: "string"},
-		{Key: "monetaryValue", Type: "number"},
+		{Key: "monetaryValue", Type: "string"},
 		{Key: "source", Type: "string"},
 		{Key: "status", Type: "string", SelectOptions: []string{"open", "won", "lost", "abandoned"}},
 		{Key: "stageId", Type: "string"},
