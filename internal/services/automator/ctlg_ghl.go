@@ -31,6 +31,7 @@ var (
 			ghlActionRegisterBookingNote,
 			ghlActionRegisterSalesNote,
 
+			ghlActionGetContact,
 			ghlActionFindContact,
 			ghlActionCreateContact,
 			ghlActionUpdateContact,
@@ -470,6 +471,43 @@ func ghlUpdateContact(ctx context.Context, fields map[string]interface{}, l mode
 	}
 
 	return successPayload(mapGhlContactToNodePayload(updatedContact))
+}
+
+var ghlActionGetContact = Node{
+	Id:          "ghlGetContact",
+	Title:       "Get Contact by ID",
+	Description: "Gets a Contact in GoHighLevel by ID.",
+	ExecFunc:    ghlGetContactById,
+	Type:        NodeTypeAction,
+	Icon:        "ri:search-2-line",
+	Kind:        "Contacts",
+	Color:       ColorAction,
+	Ports: []NodePort{
+		successPort(ghlContactFields),
+		errorPort,
+	},
+	Fields: []NodeField{
+		{Key: "id", Type: "string"},
+	},
+}
+
+func ghlGetContactById(ctx context.Context, fields map[string]interface{}, l models.Location) map[string]map[string]interface{} {
+	cli, err := svc.NewClientFromId(l.Id)
+	if err != nil {
+		return errorPayload(err, "failed to create GHL client")
+	}
+
+	id, ok := fields["id"].(string)
+	if !ok || id == "" {
+		return errorPayload(nil, "id is required")
+	}
+
+	contact, err := cli.ContactsGet(id)
+	if err != nil {
+		return errorPayload(err, "failed to get contact")
+	}
+
+	return successPayload(mapGhlContactToNodePayload(contact))
 }
 
 //////////////////////////////////////////////////

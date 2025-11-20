@@ -182,9 +182,15 @@ func GetBatchRunDetails(c *gin.Context) {
 
 	offset := (page - 1) * limit
 
+	statusFilter := c.Query("status")
+	queryFilter := c.Query("query")
+
 	var runs []models.AutomationRun
-	err = db.DB.
-		Where("batch_run_id = ?", batchRun.ID).
+	runQuery := db.DB.
+		Where("batch_run_id = ?", batchRun.ID)
+	runQuery = applyBatchRunDetailsFilters(runQuery, statusFilter, queryFilter)
+
+	err = runQuery.
 		Order("created_at DESC").
 		Limit(limit).
 		Offset(offset).
@@ -192,9 +198,10 @@ func GetBatchRunDetails(c *gin.Context) {
 	lvn.GinErr(c, 500, err, "Error getting batch run items")
 
 	var total int64
-	err = db.DB.Model(&models.AutomationRun{}).
-		Where("batch_run_id = ?", batchRun.ID).
-		Count(&total).Error
+	countQuery := db.DB.Model(&models.AutomationRun{}).
+		Where("batch_run_id = ?", batchRun.ID)
+	countQuery = applyBatchRunDetailsFilters(countQuery, statusFilter, queryFilter)
+	err = countQuery.Count(&total).Error
 	lvn.GinErr(c, 500, err, "Error counting batch run items")
 
 	response := gin.H{
@@ -296,6 +303,16 @@ func applyBatchRunFilters(tx *gorm.DB, status, automationId, nodeId string, star
 	}
 	if startedBefore != nil {
 		tx = tx.Where("(started_at IS NOT NULL AND started_at <= ?)", *startedBefore)
+	}
+	return tx
+}
+
+func applyBatchRunDetailsFilters(tx *gorm.DB, status, query string) *gorm.DB {
+	if status != "" && status != "all" {
+		tx = tx.Where("status = ?", status)
+	}
+	if query != "" {
+		tx = tx.Where("trigger_payload::text ILIKE ?", "%"+query+"%")
 	}
 	return tx
 }

@@ -9,17 +9,19 @@ import (
 )
 
 func TestRenewToken(t *testing.T) {
-	short := "EAAK2EsTlzmEBPU4GqUPSTPTIgMVAHrJqFOWfe3ZCw6KLvhpOrPilfpvZASYWLnrVFH40WS3YZBtlJyZA3qCMLh71Iff3btjBXzActeqbe7T6s27ZCnYsg7SnQZCH7P9pTJyZBXM8QI80y1iMYxzemNL8wGAFIBrjA7XZCeZBHbjOA4E7UyXf3XG9VEpNyZCLPM4AW7H76QdKSE4kxqXhAJP3qf6kPpR6aqtk2yO7A0QVayfXvDZCAZDZD"
+	short := "EAAK2EsTlzmEBP4ttxW7VOHcTBw7nkQi07oQaZADLBAITFbauRCj0hpdEpLGGUlmQrXOpJBsGZB3iKeTvGKh6arZCXPwyEZB7cZCoDF3bx8Uo1g6g7kfC2KE9tC5mzR2A4Qw8bDOrvsUNngwnqy8BScSgOdtXkDx6qCpAJY1nrLyksV9u9OZCWa2jML2ZCYFt6PuagZDZD"
 	long, err := meta.ExchangeForLongLivedToken(context.Background(), "763141682482785", "4a2a73aa201509af22b12621b3d8741f", short)
 	if err != nil {
 		t.Fatalf("failed to exchange token: %v", err)
 	}
-
-	setting := models.Setting{
-		Key:   "meta_token",
-		Value: long.AccessToken,
+	settings := models.Setting{}
+	err = db.DB.Where("key = ?", "meta_token").First(&settings).Error
+	if err != nil {
+		t.Fatalf("failed to get setting: %v", err)
 	}
-	err = db.DB.Create(&setting).Error
+
+	settings.Value = long.AccessToken
+	err = db.DB.Save(&settings).Error
 	if err != nil {
 		t.Fatalf("failed to save token: %v", err)
 	}

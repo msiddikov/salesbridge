@@ -487,7 +487,7 @@ func zenotiCollectCollections(ctx context.Context, fields map[string]interface{}
 		return nil, 0, false, nil
 	}
 
-	filterDateEnd := filterDateStart.AddDate(0, 0, 1)
+	filterDateEnd := filterDateStart
 
 	zenotiCli, err := zenotiv1.NewClient(l.Id, l.ZenotiCenterId, l.ZenotiApiObj.ApiKey)
 	if err != nil {

@@ -101,12 +101,12 @@ func StartAutomationsForTrigger(ctx context.Context, input TriggerInput) error {
 				RunNodes:       []models.AutomationRunNode{},
 			}
 
-			db.DB.Save(&runtime.runStatus)
-
 			entryNodes := runtime.entryNodesForType(input.TriggerType)
 			if len(entryNodes) == 0 {
 				continue
 			}
+
+			db.DB.Save(&runtime.runStatus) // save runtime status only if the automation has entry nodes
 
 			for _, entry := range entryNodes {
 				payloads := make(map[string]map[string]interface{})

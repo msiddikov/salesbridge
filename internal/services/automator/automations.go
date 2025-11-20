@@ -3,6 +3,8 @@ package automator
 import (
 	"client-runaway-zenoti/internal/db"
 	"client-runaway-zenoti/internal/db/models"
+	"errors"
+	"fmt"
 	"regexp"
 	"strings"
 
@@ -33,6 +35,13 @@ func CreateAutomation(c *gin.Context) {
 	payload.CreatorId = c.MustGet("user").(models.User).ID
 	payload.UpdaterId = c.MustGet("user").(models.User).ID
 
+	if validationErrors := validateAutomationGraph(payload); len(validationErrors) > 0 {
+		c.Data(lvn.Res(400, gin.H{
+			"errors": validationErrorsToStrings(validationErrors),
+		}, "automation validation failed"))
+		return
+	}
+
 	err = db.DB.Create(&payload).Error
 	lvn.GinErr(c, 400, err, "error while creating automation")
 
@@ -51,6 +60,13 @@ func UpdateAutomation(c *gin.Context) {
 	lvn.GinErr(c, 400, err, "error while getting automation")
 
 	payload.UpdaterId = c.MustGet("user").(models.User).ID
+
+	if validationErrors := validateAutomationGraph(payload); len(validationErrors) > 0 {
+		c.Data(lvn.Res(400, gin.H{
+			"errors": validationErrorsToStrings(validationErrors),
+		}, "automation validation failed"))
+		return
+	}
 
 	automation.Graph = payload.Graph
 	err = db.DB.Model(&automation).Updates(payload).Error
@@ -153,6 +169,221 @@ func DuplicateAutomation(c *gin.Context) {
 
 	c.Data(lvn.Res(200, newAutomation, ""))
 
+}
+
+func validateAutomationGraph(auto models.Automation) []error {
+	graph := auto.Graph
+	var errs []error
+
+	if len(graph.Nodes) == 0 {
+		return []error{errors.New("automation graph must contain at least one node")}
+	}
+
+	nodeByID := make(map[string]models.APINode, len(graph.Nodes))
+	catalogByNodeID := make(map[string]Node, len(graph.Nodes))
+
+	for idx, node := range graph.Nodes {
+		if node.ID == "" {
+			errs = append(errs, fmt.Errorf("node at position %d must include an id", idx))
+			continue
+		}
+		if _, exists := nodeByID[node.ID]; exists {
+			errs = append(errs, fmt.Errorf("duplicate node id %s", node.ID))
+			continue
+		}
+		nodeByID[node.ID] = node
+
+		if node.Type == "" {
+			errs = append(errs, fmt.Errorf("node %s is missing node type", node.ID))
+			continue
+		}
+
+		catalogNode, ok := getCatalogNode(node.Type)
+		if !ok {
+			errs = append(errs, fmt.Errorf("node %s references unknown catalog node %s", node.ID, node.Type))
+			continue
+		}
+		catalogByNodeID[node.ID] = catalogNode
+
+		if catalogNode.Type != "" && string(node.Kind) != string(catalogNode.Type) {
+			errs = append(errs, fmt.Errorf("node %s kind %s does not match catalog kind %s", node.ID, node.Kind, catalogNode.Type))
+		}
+	}
+
+	edgeByID := make(map[string]models.APIEdge, len(graph.Edges))
+	for idx, edge := range graph.Edges {
+		if edge.ID == "" {
+			errs = append(errs, fmt.Errorf("edge at position %d must include an id", idx))
+			continue
+		}
+		if _, exists := edgeByID[edge.ID]; exists {
+			errs = append(errs, fmt.Errorf("duplicate edge id %s", edge.ID))
+			continue
+		}
+
+		if edge.FromNodeId == "" {
+			errs = append(errs, fmt.Errorf("edge %s missing fromNodeId", edge.ID))
+		} else if _, ok := nodeByID[edge.FromNodeId]; !ok {
+			errs = append(errs, fmt.Errorf("edge %s references unknown from node %s", edge.ID, edge.FromNodeId))
+		}
+		if edge.ToNodeId == "" {
+			errs = append(errs, fmt.Errorf("edge %s missing toNodeId", edge.ID))
+		} else if _, ok := nodeByID[edge.ToNodeId]; !ok {
+			errs = append(errs, fmt.Errorf("edge %s references unknown to node %s", edge.ID, edge.ToNodeId))
+		}
+
+		edgeByID[edge.ID] = edge
+	}
+
+	if len(graph.Entry) == 0 {
+		errs = append(errs, errors.New("automation graph must define at least one entry node"))
+	}
+
+	for idx, entryID := range graph.Entry {
+		if entryID == "" {
+			errs = append(errs, fmt.Errorf("entry reference at position %d is empty", idx))
+			continue
+		}
+		node, ok := nodeByID[entryID]
+		if !ok {
+			errs = append(errs, fmt.Errorf("entry node %s does not exist in the node list", entryID))
+			continue
+		}
+		if node.Kind != models.KindTrigger && node.Kind != models.KindCollection {
+			errs = append(errs, fmt.Errorf("entry node %s must be a trigger or collection node", entryID))
+		}
+	}
+
+	for _, node := range graph.Nodes {
+		catalogNode, ok := catalogByNodeID[node.ID]
+		if !ok {
+			continue
+		}
+		errs = append(errs, validateNodeConfig(node, catalogNode, edgeByID, nodeByID)...)
+	}
+
+	return errs
+}
+
+func validateNodeConfig(node models.APINode, catalogNode Node, edgeByID map[string]models.APIEdge, nodeByID map[string]models.APINode) []error {
+	var errs []error
+
+	requiredFields := requiredFieldKeys(catalogNode.Fields)
+	if len(node.Config) == 0 {
+		if len(requiredFields) > 0 {
+			errs = append(errs, fmt.Errorf("node %s is missing configuration for required fields: %s", node.ID, strings.Join(requiredFields, ", ")))
+		}
+		return errs
+	}
+
+	for cfgKey, cfg := range node.Config {
+		if cfgKey == "default" {
+			continue
+		}
+		cfgMap := cfg
+		if cfgMap == nil {
+			cfgMap = map[string]interface{}{}
+		}
+
+		if cfgKey != "" && cfgKey != models.DefaultNodeConfigEdge {
+			if edge, ok := edgeByID[cfgKey]; !ok {
+				errs = append(errs, fmt.Errorf("node %s configuration references unknown edge %s", node.ID, cfgKey))
+			} else if edge.ToNodeId != node.ID {
+				errs = append(errs, fmt.Errorf("node %s configuration references edge %s that does not point to the node", node.ID, cfgKey))
+			}
+		}
+
+		if len(requiredFields) > 0 {
+			missing := missingRequiredFields(cfgMap, requiredFields)
+			if len(missing) > 0 {
+				errs = append(errs, fmt.Errorf("node %s config %s missing required fields: %s", node.ID, configLabel(cfgKey), strings.Join(missing, ", ")))
+			}
+		}
+
+		errs = append(errs, validateConfigValueReferences(node.ID, cfgMap, nodeByID)...)
+	}
+
+	return errs
+}
+
+func requiredFieldKeys(fields []NodeField) []string {
+	res := []string{}
+	for _, field := range fields {
+		if field.Required {
+			res = append(res, field.Key)
+		}
+	}
+	return res
+}
+
+func missingRequiredFields(values map[string]interface{}, required []string) []string {
+	if len(required) == 0 {
+		return nil
+	}
+	missing := []string{}
+	for _, key := range required {
+		val, ok := values[key]
+		if !ok || isEmptyConfigValue(val) {
+			missing = append(missing, key)
+		}
+	}
+	return missing
+}
+
+func isEmptyConfigValue(val interface{}) bool {
+	if val == nil {
+		return true
+	}
+	if str, ok := val.(string); ok {
+		return strings.TrimSpace(str) == ""
+	}
+	return false
+}
+
+func configLabel(edgeID string) string {
+	if edgeID == "" || edgeID == models.DefaultNodeConfigEdge {
+		return "default"
+	}
+	return fmt.Sprintf("edge %s", edgeID)
+}
+
+func validateConfigValueReferences(nodeID string, value interface{}, nodeByID map[string]models.APINode) []error {
+	var errs []error
+
+	switch v := value.(type) {
+	case map[string]interface{}:
+		for _, val := range v {
+			errs = append(errs, validateConfigValueReferences(nodeID, val, nodeByID)...)
+		}
+	case []interface{}:
+		for _, val := range v {
+			errs = append(errs, validateConfigValueReferences(nodeID, val, nodeByID)...)
+		}
+	case string:
+		matches := nodeReferenceRegex.FindAllStringSubmatch(v, -1)
+		for _, match := range matches {
+			if len(match) < 2 {
+				continue
+			}
+			refID := match[1]
+			if _, ok := nodeByID[refID]; !ok {
+				errs = append(errs, fmt.Errorf("node %s references unknown node %s in config value %q", nodeID, refID, v))
+			}
+		}
+	}
+
+	return errs
+}
+
+func validationErrorsToStrings(errs []error) []string {
+	res := make([]string, 0, len(errs))
+	for _, err := range errs {
+		if err == nil {
+			continue
+		}
+		res = append(res, err.Error())
+	}
+	return res
 }
 
 var nodeReferenceRegex = regexp.MustCompile(`\{\{\s*([0-9a-fA-F-]{36})([^}]*)\}\}`)
