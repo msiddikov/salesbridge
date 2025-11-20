@@ -183,30 +183,35 @@ func validateAutomationGraph(auto models.Automation) []error {
 	catalogByNodeID := make(map[string]Node, len(graph.Nodes))
 
 	for idx, node := range graph.Nodes {
+		nodeLbl := nodeLabel(node)
 		if node.ID == "" {
 			errs = append(errs, fmt.Errorf("node at position %d must include an id", idx))
 			continue
 		}
 		if _, exists := nodeByID[node.ID]; exists {
-			errs = append(errs, fmt.Errorf("duplicate node id %s", node.ID))
+			if node.Name != "" {
+				errs = append(errs, fmt.Errorf("duplicate node id %s (%s)", node.ID, node.Name))
+			} else {
+				errs = append(errs, fmt.Errorf("duplicate node id %s", node.ID))
+			}
 			continue
 		}
 		nodeByID[node.ID] = node
 
 		if node.Type == "" {
-			errs = append(errs, fmt.Errorf("node %s is missing node type", node.ID))
+			errs = append(errs, fmt.Errorf("node %s is missing node type", nodeLbl))
 			continue
 		}
 
 		catalogNode, ok := getCatalogNode(node.Type)
 		if !ok {
-			errs = append(errs, fmt.Errorf("node %s references unknown catalog node %s", node.ID, node.Type))
+			errs = append(errs, fmt.Errorf("node %s references unknown catalog node %s", nodeLbl, node.Type))
 			continue
 		}
 		catalogByNodeID[node.ID] = catalogNode
 
 		if catalogNode.Type != "" && string(node.Kind) != string(catalogNode.Type) {
-			errs = append(errs, fmt.Errorf("node %s kind %s does not match catalog kind %s", node.ID, node.Kind, catalogNode.Type))
+			errs = append(errs, fmt.Errorf("node %s kind %s does not match catalog kind %s", nodeLbl, node.Kind, catalogNode.Type))
 		}
 	}
 
@@ -250,7 +255,7 @@ func validateAutomationGraph(auto models.Automation) []error {
 			continue
 		}
 		if node.Kind != models.KindTrigger && node.Kind != models.KindCollection {
-			errs = append(errs, fmt.Errorf("entry node %s must be a trigger or collection node", entryID))
+			errs = append(errs, fmt.Errorf("entry node %s must be a trigger or collection node", nodeLabel(node)))
 		}
 	}
 
@@ -267,11 +272,12 @@ func validateAutomationGraph(auto models.Automation) []error {
 
 func validateNodeConfig(node models.APINode, catalogNode Node, edgeByID map[string]models.APIEdge, nodeByID map[string]models.APINode) []error {
 	var errs []error
+	nodeLbl := nodeLabel(node)
 
 	requiredFields := requiredFieldKeys(catalogNode.Fields)
 	if len(node.Config) == 0 {
 		if len(requiredFields) > 0 {
-			errs = append(errs, fmt.Errorf("node %s is missing configuration for required fields: %s", node.ID, strings.Join(requiredFields, ", ")))
+			errs = append(errs, fmt.Errorf("node %s is missing configuration for required fields: %s", nodeLbl, strings.Join(requiredFields, ", ")))
 		}
 		return errs
 	}
@@ -287,16 +293,16 @@ func validateNodeConfig(node models.APINode, catalogNode Node, edgeByID map[stri
 
 		if cfgKey != "" && cfgKey != models.DefaultNodeConfigEdge {
 			if edge, ok := edgeByID[cfgKey]; !ok {
-				errs = append(errs, fmt.Errorf("node %s configuration references unknown edge %s", node.ID, cfgKey))
+				errs = append(errs, fmt.Errorf("node %s configuration references unknown edge %s", nodeLbl, cfgKey))
 			} else if edge.ToNodeId != node.ID {
-				errs = append(errs, fmt.Errorf("node %s configuration references edge %s that does not point to the node", node.ID, cfgKey))
+				errs = append(errs, fmt.Errorf("node %s configuration references edge %s that does not point to the node", nodeLbl, cfgKey))
 			}
 		}
 
 		if len(requiredFields) > 0 {
 			missing := missingRequiredFields(cfgMap, requiredFields)
 			if len(missing) > 0 {
-				errs = append(errs, fmt.Errorf("node %s config %s missing required fields: %s", node.ID, configLabel(cfgKey), strings.Join(missing, ", ")))
+				errs = append(errs, fmt.Errorf("node %s config %s missing required fields: %s", nodeLbl, configLabel(cfgKey), strings.Join(missing, ", ")))
 			}
 		}
 
@@ -349,6 +355,7 @@ func configLabel(edgeID string) string {
 
 func validateConfigValueReferences(nodeID string, value interface{}, nodeByID map[string]models.APINode) []error {
 	var errs []error
+	nodeLbl := nodeLabelByID(nodeID, nodeByID)
 
 	switch v := value.(type) {
 	case map[string]interface{}:
@@ -367,12 +374,30 @@ func validateConfigValueReferences(nodeID string, value interface{}, nodeByID ma
 			}
 			refID := match[1]
 			if _, ok := nodeByID[refID]; !ok {
-				errs = append(errs, fmt.Errorf("node %s references unknown node %s in config value %q", nodeID, refID, v))
+				errs = append(errs, fmt.Errorf("node %s references unknown node %s in config value %q", nodeLbl, refID, v))
 			}
 		}
 	}
 
 	return errs
+}
+
+func nodeLabel(node models.APINode) string {
+	switch {
+	case node.Name != "" && node.ID != "":
+		return fmt.Sprintf("%s (%s)", node.Name, node.ID)
+	case node.Name != "":
+		return node.Name
+	default:
+		return node.ID
+	}
+}
+
+func nodeLabelByID(nodeID string, nodeByID map[string]models.APINode) string {
+	if node, ok := nodeByID[nodeID]; ok {
+		return nodeLabel(node)
+	}
+	return nodeID
 }
 
 func validationErrorsToStrings(errs []error) []string {
