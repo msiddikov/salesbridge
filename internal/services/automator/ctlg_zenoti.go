@@ -24,6 +24,7 @@ var (
 			zenotiTriggerInvoiceClosed,
 			zenotiCollectionAppointments,
 			zenotiCollectionCollections,
+			zenotiCollectionSales,
 			zenotiActionMergeAppointment,
 			zenotiActionMergeSales,
 			zenotiActionGetGuest,
@@ -130,6 +131,7 @@ var (
 	///////////////////////////////////////////////////
 
 	zenotiAppointmentNodeFields = []NodeField{
+
 		{Key: "appointmentId", Label: "Appointment ID", Type: "string"},
 		{Key: "guestId", Label: "Guest ID", Type: "string"},
 		{Key: "guestFirstName", Label: "Guest First Name", Type: "string"},
@@ -539,6 +541,9 @@ var (
 			errorPort,
 		},
 		Fields: []NodeField{
+			{Key: "limit", Label: "Limit", Type: "number"},
+			{Key: "pageFrom", Label: "Page From", Type: "number"},
+			{Key: "pageTo", Label: "Page To", Type: "number"},
 			{Key: "startDate", Label: "Start Date", Type: "datetime", Required: true},
 			{Key: "endDate", Label: "End Date", Type: "datetime", Required: true},
 			{Key: "invoiceStatuses", Label: "Invoice Statuses", Type: "[]string", SelectOptions: []string{"closed", "open"}},
@@ -552,6 +557,8 @@ var (
 		{Key: "centerId", Label: "Center ID", Type: "string"},
 		{Key: "centerName", Label: "Center Name", Type: "string"},
 		{Key: "invoiceId", Label: "Invoice ID", Type: "string"},
+		{Key: "saleDate", Label: "Sale Date", Type: "string"},
+		{Key: "closedDate", Label: "Closed Date", Type: "string"},
 
 		{Key: "collected", Label: "Collected", Type: "number"},
 		{Key: "discount", Label: "Discount", Type: "number"},
@@ -562,11 +569,9 @@ var (
 		{Key: "salesIncTax", Label: "Sales Inc Tax", Type: "number"},
 		{Key: "status", Label: "Status", Type: "string"},
 
-		{Key: "itemId", Label: "Item ID", Type: "string"},
-		{Key: "itemName", Label: "Item Name", Type: "string"},
-		{Key: "itemType", Label: "Item Type", Type: "string"},
-		{Key: "price", Label: "Price", Type: "number"},
-		{Key: "qty", Label: "Quantity", Type: "number"},
+		{Key: "itemIds", Label: "Item IDs", Type: "string"},
+		{Key: "itemNames", Label: "Item Names", Type: "string"},
+		{Key: "itemTypes", Label: "Item Types", Type: "string"},
 
 		{Key: "guestId", Label: "Guest ID", Type: "string"},
 		{Key: "guestName", Label: "Guest Name", Type: "string"},
@@ -603,7 +608,7 @@ func mapFieldsToZenotiSalesFilter(fields map[string]interface{}) (zenotiv1.Sales
 				status := int(-1)
 				switch strings.ToLower(statusStr) {
 				case "closed":
-					status = 1
+					status = 4
 				case "open":
 					status = 0
 				}
@@ -642,33 +647,108 @@ func mapFieldsToZenotiSalesFilter(fields map[string]interface{}) (zenotiv1.Sales
 func mapZenotiSaleToNodePayload(sale zenotiv1.SalesDetails) map[string]interface{} {
 	res := make(map[string]interface{})
 	res["centerId"] = sale.Center_id
-	res["centerName"] = sale.Center.Name
-	res["invoiceId"] = sale.Invoice.Id
+	res["centerName"] = sale.Center_name
+	res["invoiceId"] = sale.Invoice_id
+	res["saleDate"] = sale.Sale_date.Time.Format(time.RFC3339)
+	res["closedDate"] = sale.Invoice_closed_date.Time.Format(time.RFC3339)
+	res["saleDate"] = sale.Sale_date.Time.Format(time.RFC3339)
 
-	res["collected"] = sale.Collected.Sum_Total
-	res["discount"] = sale.Discount.Sum_Total
-	res["redeemed"] = sale.Redeemed.Sum_Total
-	res["taxableRedemption"] = sale.Taxable_Redemption.Sum_Total
-	res["salesExTax"] = sale.Sales_Ex_Tax.Sum_Total
-	res["salesExcludingRedemption"] = sale.Sales_Excluding_Redemption.Sum_Total
-	res["salesIncTax"] = sale.Sales_Inc_Tax.Sum_Total
-	res["status"] = sale.Status.String()
+	res["collected"] = sale.Collected
+	res["discount"] = sale.Discount
+	res["redeemed"] = sale.Redeemed
+	res["taxableRedemption"] = sale.Taxable_redemption
+	res["salesExTax"] = sale.Sales_ex_tax
+	res["salesExcludingRedemption"] = sale.Sales_excluding_redemption
+	res["salesIncTax"] = sale.Sales_inc_tax
+	res["status"] = sale.Status
 
-	if len(sale.Items) > 0 {
-		res["itemId"] = sale.Items[0].Item.Id
-		res["itemName"] = sale.Items[0].Item.Name
-		res["itemType"] = sale.Items[0].Item.Type.String()
-		res["price"] = sale.Items[0].Price.Sum_Total
-		res["qty"] = sale.Items[0].Qty
-	}
+	res["itemIds"] = []string{sale.Item_id}
+	res["itemNames"] = []string{sale.Item_name}
+	res["itemTypes"] = []string{string(sale.Item_type)}
 
-	res["guestId"] = sale.Guest.Id
-	res["guestName"] = sale.Guest.Name
+	res["guestId"] = sale.Guest_id
+	res["guestName"] = sale.Guest_name
 
 	return res
 }
 
 func zenotiCollectSales(ctx context.Context, fields map[string]interface{}, l models.Location) (collectionResult, error) {
+	filter, err := mapFieldsToZenotiSalesFilter(fields)
+	if err != nil {
+		return collectionResult{}, err
+	}
+	limit, ok := fields["limit"].(float64)
+	if !ok || limit < 1 {
+		limit = 50
+	}
+	page, ok := fields["page"].(float64)
+	if !ok || page < 1 {
+		page = 1
+	}
+
+	pageInfo := zenotiv1.PageInfo{
+		Size: int(limit),
+		Page: int(page),
+	}
+
+	filter.Center_ids = []string{l.ZenotiCenterId}
+
+	zenotiCli, err := zenotiv1.NewClient(l.Id, l.ZenotiCenterId, l.ZenotiApiObj.ApiKey)
+	if err != nil {
+		return collectionResult{}, err
+	}
+
+	sales, pageInfo, err := zenotiCli.ReportsSalesAccrual(filter, pageInfo)
+	if err != nil {
+		return collectionResult{}, err
+	}
+
+	invoices := map[string][]zenotiv1.SalesDetails{}
+	for _, sale := range sales {
+		invoices[sale.Invoice_id] = append(invoices[sale.Invoice_id], sale)
+	}
+
+	res := []collectionItem{}
+	for _, salesDetails := range invoices {
+		if len(salesDetails) == 0 {
+			continue
+		}
+		resLine := mapZenotiSaleToNodePayload(salesDetails[0])
+
+		for i := 1; i < len(salesDetails); i++ {
+			// Append item details
+			resLine["itemIds"] = append(resLine["itemIds"].([]string), salesDetails[i].Item_id)
+			resLine["itemNames"] = append(resLine["itemNames"].([]string), salesDetails[i].Item_name)
+			resLine["itemTypes"] = append(resLine["itemTypes"].([]string), string(salesDetails[i].Item_type))
+
+			// Aggregate amounts
+			resLine["collected"] = resLine["collected"].(float64) + salesDetails[i].Collected
+			resLine["discount"] = resLine["discount"].(float64) + salesDetails[i].Discount
+			resLine["redeemed"] = resLine["redeemed"].(float64) + salesDetails[i].Redeemed
+			resLine["taxableRedemption"] = resLine["taxableRedemption"].(float64) + salesDetails[i].Taxable_redemption
+			resLine["salesExTax"] = resLine["salesExTax"].(float64) + salesDetails[i].Sales_ex_tax
+			resLine["salesExcludingRedemption"] = resLine["salesExcludingRedemption"].(float64) + salesDetails[i].Sales_excluding_redemption
+			resLine["salesIncTax"] = resLine["salesIncTax"].(float64) + salesDetails[i].Sales_inc_tax
+		}
+
+		// stringify amounts
+		resLine["collected"] = fmt.Sprintf("%.2f", resLine["collected"].(float64))
+		resLine["discount"] = fmt.Sprintf("%.2f", resLine["discount"].(float64))
+		resLine["redeemed"] = fmt.Sprintf("%.2f", resLine["redeemed"].(float64))
+		resLine["taxableRedemption"] = fmt.Sprintf("%.2f", resLine["taxableRedemption"].(float64))
+		resLine["salesExTax"] = fmt.Sprintf("%.2f", resLine["salesExTax"].(float64))
+		resLine["salesExcludingRedemption"] = fmt.Sprintf("%.2f", resLine["salesExcludingRedemption"].(float64))
+		resLine["salesIncTax"] = fmt.Sprintf("%.2f", resLine["salesIncTax"].(float64))
+
+		res = append(res, collectionItem{payload: resLine, countsFor: len(salesDetails)})
+	}
+
+	return collectionResult{
+		items:   res,
+		total:   pageInfo.Total,
+		hasMore: pageInfo.Page*pageInfo.Size < pageInfo.Total,
+	}, nil
+
 }
 
 var (

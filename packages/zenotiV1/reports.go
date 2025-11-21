@@ -60,7 +60,7 @@ func (c *Client) ReportsAllCollections(from, to time.Time) ([]Collection, error)
 type SalesAccrualFilter struct {
 	Start_date       ZenotiTime      `json:"start_date"`
 	End_date         ZenotiTime      `json:"end_date"`
-	Centers_ids      []string        `json:"centers_ids"`
+	Center_ids       []string        `json:"center_ids"`
 	Invoice_statuses []InvoiceStatus `json:"invoice_statuses"` // 0-Open, 4 - Closed
 	Item_types       []ItemType      `json:"item_types"`       // "Service", "Product", "Membership","GiftCard", "Package"
 	Payment_types    []PaymentType   `json:"payment_types"`
@@ -68,9 +68,11 @@ type SalesAccrualFilter struct {
 }
 
 type SalesDetails struct {
-	Center_id   string
-	Center_name string
-	Invoice_id  string
+	Center_id           string
+	Center_name         string
+	Invoice_id          string
+	Invoice_closed_date ZenotiTime
+	Sale_date           ZenotiTime
 
 	Collected                  float64
 	Discount                   float64
@@ -105,12 +107,8 @@ func (c *Client) ReportsSalesAccrual(filter SalesAccrualFilter, pager PageInfo) 
 
 	_, _, err = c.fetch(reqParams{
 		Method:   "POST",
-		Endpoint: "/reports/sales_accrual",
+		Endpoint: "/reports/sales/accrual_basis/flat_file",
 		QParams: []queryParam{
-			{
-				Key:   "center_id",
-				Value: c.cfg.centerId,
-			},
 			{
 				Key:   "page",
 				Value: strconv.Itoa(pager.Page),

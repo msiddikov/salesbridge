@@ -38,7 +38,8 @@ func setRoutes(router *gin.Engine) {
 	auto.DELETE("/:automationId", auth.Auth, automator.DeleteAutomation)
 	auto.POST("/duplicate/:automationId", auth.Auth, automator.DuplicateAutomation)
 
-	auto.GET("/runs/:automationId", auth.Auth, automator.GetAutomationRuns)
+	auto.GET("/runs", auth.Auth, automator.GetAutomationRuns)
+	auto.GET("/runs/export", auth.Auth, automator.ExportAutomationRuns)
 	auto.GET("/run-details/:runId", auth.Auth, automator.GetAutomationRunDetails)
 	auto.POST("/run/:runId/restart", auth.Auth, automator.StartFromAutomationRun)
 

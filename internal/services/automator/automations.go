@@ -216,6 +216,7 @@ func validateAutomationGraph(auto models.Automation) []error {
 	}
 
 	edgeByID := make(map[string]models.APIEdge, len(graph.Edges))
+	edgesFrom := make(map[string][]models.APIEdge)
 	for idx, edge := range graph.Edges {
 		if edge.ID == "" {
 			errs = append(errs, fmt.Errorf("edge at position %d must include an id", idx))
@@ -238,6 +239,9 @@ func validateAutomationGraph(auto models.Automation) []error {
 		}
 
 		edgeByID[edge.ID] = edge
+		if edge.FromNodeId != "" {
+			edgesFrom[edge.FromNodeId] = append(edgesFrom[edge.FromNodeId], edge)
+		}
 	}
 
 	if len(graph.Entry) == 0 {
@@ -264,13 +268,13 @@ func validateAutomationGraph(auto models.Automation) []error {
 		if !ok {
 			continue
 		}
-		errs = append(errs, validateNodeConfig(node, catalogNode, edgeByID, nodeByID)...)
+		errs = append(errs, validateNodeConfig(node, catalogNode, edgeByID, edgesFrom, nodeByID, catalogByNodeID)...)
 	}
 
 	return errs
 }
 
-func validateNodeConfig(node models.APINode, catalogNode Node, edgeByID map[string]models.APIEdge, nodeByID map[string]models.APINode) []error {
+func validateNodeConfig(node models.APINode, catalogNode Node, edgeByID map[string]models.APIEdge, edgesFrom map[string][]models.APIEdge, nodeByID map[string]models.APINode, catalogByNodeID map[string]Node) []error {
 	var errs []error
 	nodeLbl := nodeLabel(node)
 
@@ -306,7 +310,7 @@ func validateNodeConfig(node models.APINode, catalogNode Node, edgeByID map[stri
 			}
 		}
 
-		errs = append(errs, validateConfigValueReferences(node.ID, cfgMap, nodeByID)...)
+		errs = append(errs, validateConfigValueReferences(node.ID, cfgMap, nodeByID, edgesFrom, catalogByNodeID)...)
 	}
 
 	return errs
@@ -353,18 +357,18 @@ func configLabel(edgeID string) string {
 	return fmt.Sprintf("edge %s", edgeID)
 }
 
-func validateConfigValueReferences(nodeID string, value interface{}, nodeByID map[string]models.APINode) []error {
+func validateConfigValueReferences(nodeID string, value interface{}, nodeByID map[string]models.APINode, edgesFrom map[string][]models.APIEdge, catalogByNodeID map[string]Node) []error {
 	var errs []error
 	nodeLbl := nodeLabelByID(nodeID, nodeByID)
 
 	switch v := value.(type) {
 	case map[string]interface{}:
 		for _, val := range v {
-			errs = append(errs, validateConfigValueReferences(nodeID, val, nodeByID)...)
+			errs = append(errs, validateConfigValueReferences(nodeID, val, nodeByID, edgesFrom, catalogByNodeID)...)
 		}
 	case []interface{}:
 		for _, val := range v {
-			errs = append(errs, validateConfigValueReferences(nodeID, val, nodeByID)...)
+			errs = append(errs, validateConfigValueReferences(nodeID, val, nodeByID, edgesFrom, catalogByNodeID)...)
 		}
 	case string:
 		matches := nodeReferenceRegex.FindAllStringSubmatch(v, -1)
@@ -373,13 +377,175 @@ func validateConfigValueReferences(nodeID string, value interface{}, nodeByID ma
 				continue
 			}
 			refID := match[1]
-			if _, ok := nodeByID[refID]; !ok {
-				errs = append(errs, fmt.Errorf("node %s references unknown node %s in config value %q", nodeLbl, refID, v))
+			fieldExpr := ""
+			if len(match) > 2 {
+				fieldExpr = strings.TrimSpace(match[2])
 			}
+			fieldExpr = strings.TrimPrefix(fieldExpr, ".")
+			if fieldExpr == "" {
+				errs = append(errs, fmt.Errorf("node %s has invalid placeholder referencing %s in value %q", nodeLbl, refID, v))
+				continue
+			}
+			fieldPath := strings.Split(fieldExpr, ".")
+			errs = append(errs, validatePlaceholderReference(nodeID, refID, fieldPath, v, nodeByID, edgesFrom, catalogByNodeID)...)
 		}
 	}
 
 	return errs
+}
+
+func validatePlaceholderReference(currentNodeID, refNodeID string, fieldPath []string, rawValue string, nodeByID map[string]models.APINode, edgesFrom map[string][]models.APIEdge, catalogByNodeID map[string]Node) []error {
+	var errs []error
+	targetLbl := nodeLabelByID(currentNodeID, nodeByID)
+	refLbl := nodeLabelByID(refNodeID, nodeByID)
+
+	if refNodeID == "" {
+		errs = append(errs, fmt.Errorf("node %s references an empty node id in value %q", targetLbl, rawValue))
+		return errs
+	}
+
+	if _, ok := nodeByID[refNodeID]; !ok {
+		errs = append(errs, fmt.Errorf("node %s references unknown node %s in config value %q", targetLbl, refNodeID, rawValue))
+		return errs
+	}
+
+	if currentNodeID == refNodeID {
+		errs = append(errs, fmt.Errorf("node %s cannot reference itself in config value %q", targetLbl, rawValue))
+		return errs
+	}
+
+	if len(fieldPath) == 0 || fieldPath[0] == "" {
+		errs = append(errs, fmt.Errorf("node %s has invalid placeholder referencing %s in value %q", targetLbl, refLbl, rawValue))
+		return errs
+	}
+
+	ports := findPortsForReference(refNodeID, currentNodeID, edgesFrom, nodeByID)
+	if len(ports) == 0 {
+		errs = append(errs, fmt.Errorf("node %s is not connected to %s, cannot reference it in value %q", targetLbl, refLbl, rawValue))
+		return errs
+	}
+
+	catalogNode, ok := catalogByNodeID[refNodeID]
+	if !ok {
+		return errs
+	}
+
+	fieldKey := fieldPath[0]
+	for _, port := range ports {
+		if nodePortHasField(catalogNode, port, fieldKey) {
+			return errs
+		}
+	}
+
+	errs = append(errs, fmt.Errorf("node %s expects field %s from %s via port(s) %s, but it is not provided", targetLbl, fieldKey, refLbl, strings.Join(ports, ", ")))
+	return errs
+}
+
+func findPortsForReference(fromNodeID, toNodeID string, edgesFrom map[string][]models.APIEdge, nodeByID map[string]models.APINode) []string {
+	if fromNodeID == "" || toNodeID == "" || fromNodeID == toNodeID {
+		return nil
+	}
+
+	type state struct {
+		nodeID    string
+		firstPort string
+	}
+
+	queue := []state{}
+	visited := make(map[string]map[string]bool)
+	ports := []string{}
+
+	markVisited := func(nodeID, port string) bool {
+		if nodeID == "" || port == "" {
+			return false
+		}
+		if visited[nodeID] == nil {
+			visited[nodeID] = make(map[string]bool)
+		}
+		if visited[nodeID][port] {
+			return false
+		}
+		visited[nodeID][port] = true
+		return true
+	}
+
+	appendPort := func(port string) {
+		for _, existing := range ports {
+			if existing == port {
+				return
+			}
+		}
+		ports = append(ports, port)
+	}
+
+	startEdges := edgesFrom[fromNodeID]
+	for _, edge := range startEdges {
+		portName := edge.FromPort
+		if portName == "" {
+			if fromNode, ok := nodeByID[fromNodeID]; ok {
+				portName = defaultSuccessForKind(fromNode.Kind)
+			}
+		}
+		if portName == "" {
+			continue
+		}
+		next := state{
+			nodeID:    edge.ToNodeId,
+			firstPort: portName,
+		}
+		if next.nodeID == "" || !markVisited(next.nodeID, next.firstPort) {
+			continue
+		}
+		if next.nodeID == toNodeID {
+			appendPort(next.firstPort)
+		} else {
+			queue = append(queue, next)
+		}
+	}
+
+	for len(queue) > 0 {
+		cur := queue[0]
+		queue = queue[1:]
+
+		if cur.nodeID == toNodeID {
+			appendPort(cur.firstPort)
+			continue
+		}
+
+		for _, edge := range edgesFrom[cur.nodeID] {
+			next := state{
+				nodeID:    edge.ToNodeId,
+				firstPort: cur.firstPort,
+			}
+			if next.nodeID == "" || !markVisited(next.nodeID, next.firstPort) {
+				continue
+			}
+			if next.nodeID == toNodeID {
+				appendPort(next.firstPort)
+			} else {
+				queue = append(queue, next)
+			}
+		}
+	}
+
+	return ports
+}
+
+func nodePortHasField(node Node, portName, fieldKey string) bool {
+	if portName == "" || fieldKey == "" {
+		return false
+	}
+	for _, port := range node.Ports {
+		if port.Name != portName {
+			continue
+		}
+		for _, field := range port.Payload {
+			if field.Key == fieldKey {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func nodeLabel(node models.APINode) string {

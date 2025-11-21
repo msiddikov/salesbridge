@@ -162,26 +162,6 @@ func GetBatchRunDetails(c *gin.Context) {
 	}
 	lvn.GinErr(c, 500, err, "Error getting batch run")
 
-	const (
-		defaultLimit = 25
-		maxLimit     = 200
-	)
-
-	limit := parseBatchQueryInt(c, "limit", defaultLimit)
-	if limit <= 0 {
-		limit = defaultLimit
-	}
-	if limit > maxLimit {
-		limit = maxLimit
-	}
-
-	page := parseBatchQueryInt(c, "page", 1)
-	if page < 1 {
-		page = 1
-	}
-
-	offset := (page - 1) * limit
-
 	statusFilter := c.Query("status")
 	queryFilter := c.Query("query")
 
@@ -192,8 +172,6 @@ func GetBatchRunDetails(c *gin.Context) {
 
 	err = runQuery.
 		Order("created_at DESC").
-		Limit(limit).
-		Offset(offset).
 		Find(&runs).Error
 	lvn.GinErr(c, 500, err, "Error getting batch run items")
 
@@ -206,13 +184,6 @@ func GetBatchRunDetails(c *gin.Context) {
 
 	response := gin.H{
 		"batchRun": batchRun,
-		"runs":     runs,
-		"pagination": gin.H{
-			"page":    page,
-			"limit":   limit,
-			"total":   total,
-			"hasMore": int64(offset+len(runs)) < total,
-		},
 	}
 
 	c.Data(lvn.Res(200, response, "OK"))

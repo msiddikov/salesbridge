@@ -227,9 +227,6 @@ type (
 		Appointments []Appointment
 	}
 
-	ZenotiStatus  int
-	InvoiceStatus int
-
 	ZenotiTime struct {
 		Time time.Time `jsont:"time,omitempty"`
 	}
@@ -324,25 +321,6 @@ type (
 		LastFour string `json:"last_four"`
 		ExpiryOn string `json:"expiry_on"`
 	}
-)
-
-const (
-	NoShowed  ZenotiStatus = -2
-	Canceled  ZenotiStatus = -1
-	Booked    ZenotiStatus = 0
-	Closed    ZenotiStatus = 1
-	CheckedIn ZenotiStatus = 2
-	Confirmed ZenotiStatus = 4
-)
-
-const (
-	InvoiceOpen            InvoiceStatus = 0
-	InvoiceProcessed       InvoiceStatus = 1
-	InvoiceCampaignApplied InvoiceStatus = 2
-	InvoiceCouponApplied   InvoiceStatus = 3
-	InvoiceClosed          InvoiceStatus = 4
-	InvoiceNotSpecified    InvoiceStatus = 11
-	InvoiceVoided          InvoiceStatus = 99
 )
 
 var (

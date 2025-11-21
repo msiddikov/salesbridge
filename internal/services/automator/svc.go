@@ -4,9 +4,12 @@ import (
 	"client-runaway-zenoti/internal/db"
 	"client-runaway-zenoti/internal/db/models"
 	"context"
+	"encoding/csv"
 	"errors"
 	"fmt"
+	"sort"
 	"strconv"
+	"strings"
 	"time"
 
 	lvn "github.com/Lavina-Tech-LLC/lavinagopackage/v2"
@@ -14,61 +17,32 @@ import (
 	"gorm.io/gorm"
 )
 
+type (
+	automationRunFilter struct {
+		automationId  string
+		status        string
+		startedAfter  *time.Time
+		startedBefore *time.Time
+		searchQuery   string
+		batchRunID    string
+		limit         int
+		offset        int
+	}
+)
+
 func GetAutomationRuns(c *gin.Context) {
-	automationId := c.Param("automationId")
+	filter := getAutomationRunFilterFromContext(c)
 
-	const (
-		defaultLimit = 20
-		maxLimit     = 100
-	)
-
-	limit := parseQueryInt(c, "limit", defaultLimit)
-	if limit <= 0 {
-		limit = defaultLimit
-	}
-	if limit > maxLimit {
-		limit = maxLimit
+	if filter.limit > 100 {
+		filter.limit = 100
 	}
 
-	page := parseQueryInt(c, "page", 1)
-	if page < 1 {
-		page = 1
-	}
-
-	offset := (page - 1) * limit
-
-	statusFilter := c.Query("status")
-	searchQuery := c.Query("query")
-	batchRunID := c.Query("batchRunId")
-	startedAfter, err := parseQueryTime(c, "startedAfter")
-	if err != nil {
-		lvn.GinErr(c, 400, err, "Invalid startedAfter parameter")
-		return
-	}
-	startedBefore, err := parseQueryTime(c, "startedBefore")
-	if err != nil {
-		lvn.GinErr(c, 400, err, "Invalid startedBefore parameter")
-		return
-	}
-
-	runs := []models.AutomationRun{}
-
-	query := db.DB.
-		Where("automation_id = ?", automationId)
-	query = applyRunFilters(query, statusFilter, startedAfter, startedBefore, searchQuery, batchRunID).
-		Order("created_at desc").
-		Limit(limit).
-		Offset(offset)
-
-	err = query.Find(&runs).Error
+	runs, total, err := getAutomationRuns(filter)
 	lvn.GinErr(c, 500, err, "Error getting automation runs")
 
-	var total int64
-	countQuery := db.DB.Model(&models.AutomationRun{}).
-		Where("automation_id = ?", automationId)
-	countQuery = applyRunFilters(countQuery, statusFilter, startedAfter, startedBefore, searchQuery, batchRunID)
-	err = countQuery.Count(&total).Error
-	lvn.GinErr(c, 500, err, "Error counting automation runs")
+	page := (filter.offset / filter.limit) + 1
+	limit := filter.limit
+	offset := filter.offset
 
 	response := gin.H{
 		"runs": runs,
@@ -81,6 +55,172 @@ func GetAutomationRuns(c *gin.Context) {
 	}
 
 	c.Data(lvn.Res(200, response, "OK"))
+}
+
+func getAutomationRuns(filter automationRunFilter) ([]models.AutomationRun, int64, error) {
+	runs := []models.AutomationRun{}
+
+	query := db.DB.Model(&models.AutomationRun{})
+	if filter.automationId != "" {
+		query = query.Where("automation_id = ?", filter.automationId)
+	}
+
+	query = applyRunFilters(query, filter).
+		Order("created_at desc").
+		Limit(filter.limit).
+		Offset(filter.offset)
+
+	err := query.Find(&runs).Error
+	if err != nil {
+		return nil, 0, err
+	}
+
+	var total int64
+	countQuery := db.DB.Model(&models.AutomationRun{})
+	if filter.automationId != "" {
+		countQuery = countQuery.Where("automation_id = ?", filter.automationId)
+	}
+	countQuery = applyRunFilters(countQuery, filter)
+	err = countQuery.Count(&total).Error
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return runs, total, nil
+}
+
+func getAutomationRunFilterFromContext(c *gin.Context) automationRunFilter {
+	automationId := c.Query("automationId")
+
+	const (
+		defaultLimit = 20
+	)
+
+	limit := parseQueryInt(c, "limit", defaultLimit)
+	if limit <= 0 {
+		limit = defaultLimit
+	}
+
+	page := parseQueryInt(c, "page", 1)
+	if page < 1 {
+		page = 1
+	}
+
+	offset := (page - 1) * limit
+
+	statusFilter := c.Query("status")
+	searchQuery := c.Query("query")
+	batchRunID := c.Query("batchRunId")
+	startedAfter, _ := parseQueryTime(c, "startedAfter")
+	startedBefore, _ := parseQueryTime(c, "startedBefore")
+
+	return automationRunFilter{
+		automationId:  automationId,
+		status:        statusFilter,
+		startedAfter:  startedAfter,
+		startedBefore: startedBefore,
+		searchQuery:   searchQuery,
+		batchRunID:    batchRunID,
+		limit:         limit,
+		offset:        offset,
+	}
+}
+
+func ExportAutomationRuns(c *gin.Context) {
+	filter := getAutomationRunFilterFromContext(c)
+
+	filter.limit = 1000000
+	filter.offset = 0
+
+	runs, _, err := getAutomationRuns(filter)
+	lvn.GinErr(c, 500, err, "Error getting automation runs")
+
+	batchStatuses, err := fetchBatchRunStatuses(runs)
+	lvn.GinErr(c, 500, err, "Error getting batch run info")
+
+	triggerKeys := collectTriggerPayloadKeys(runs)
+
+	headers := []string{
+		"startedDate",
+		"endedDate",
+		"duration",
+		"status",
+		"nodeRunsQty",
+		"nodeRuns",
+		"Status",
+		"ExecutionsWithErrors",
+		"errorMessage",
+	}
+	headers = append(headers, triggerKeys...)
+
+	filename := "automation-runs.csv"
+
+	c.Header("Content-Type", "text/csv")
+	c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=%q", filename))
+	c.Status(200)
+
+	writer := csv.NewWriter(c.Writer)
+	if err := writer.Write(headers); err != nil {
+		writer.Flush()
+		lvn.GinErr(c, 500, err, "Error writing CSV header")
+		return
+	}
+
+	for _, run := range runs {
+		started := run.StartedAt.Format(time.RFC3339)
+		ended := ""
+		duration := ""
+		if run.CompletedAt != nil {
+			ended = run.CompletedAt.Format(time.RFC3339)
+			duration = run.CompletedAt.Sub(run.StartedAt).String()
+		}
+
+		nodeNames := make([]string, 0, len(run.RunNodes))
+		for _, nodeRun := range run.RunNodes {
+			nodeNames = append(nodeNames, nodeRun.NodeName)
+		}
+
+		batchStatus := ""
+		if run.BatchRunID != nil {
+			if val, ok := batchStatuses[*run.BatchRunID]; ok {
+				batchStatus = val
+			}
+		}
+
+		row := []string{
+			started,
+			ended,
+			duration,
+			string(run.Status),
+			strconv.Itoa(len(run.RunNodes)),
+			strings.Join(nodeNames, " > "),
+			batchStatus,
+			strconv.Itoa(run.RunNodesWithErrors),
+			run.ErrorMessage,
+		}
+
+		for _, key := range triggerKeys {
+			val := ""
+			if run.TriggerPayload != nil {
+				if v, ok := run.TriggerPayload[key]; ok {
+					val = fmt.Sprintf("%v", v)
+				}
+			}
+			row = append(row, val)
+		}
+
+		if err := writer.Write(row); err != nil {
+			writer.Flush()
+			lvn.GinErr(c, 500, err, "Error writing CSV row")
+			return
+		}
+	}
+
+	writer.Flush()
+	if err := writer.Error(); err != nil {
+		lvn.GinErr(c, 500, err, "Error finalizing CSV export")
+		return
+	}
 }
 
 func GetAutomationRunDetails(c *gin.Context) {
@@ -187,23 +327,72 @@ func parseQueryTime(c *gin.Context, key string) (*time.Time, error) {
 	return &parsed, nil
 }
 
-func applyRunFilters(tx *gorm.DB, status string, startedAfter, startedBefore *time.Time, searchQuery, batchRunID string) *gorm.DB {
-	if batchRunID != "" {
-		tx = tx.Where("batch_run_id = ?", batchRunID)
+func applyRunFilters(tx *gorm.DB, filter automationRunFilter) *gorm.DB {
+	if filter.batchRunID != "" {
+		tx = tx.Where("batch_run_id = ?", filter.batchRunID)
 	} else {
 		tx = tx.Where("batch_run_id IS NULL")
 	}
-	if status != "" && status != "all" {
-		tx = tx.Where("status = ?", status)
+	if filter.status != "" && filter.status != "all" {
+		tx = tx.Where("status = ?", filter.status)
 	}
-	if startedAfter != nil {
-		tx = tx.Where("started_at >= ?", *startedAfter)
+	if filter.startedAfter != nil {
+		tx = tx.Where("started_at >= ?", *filter.startedAfter)
 	}
-	if startedBefore != nil {
-		tx = tx.Where("started_at <= ?", *startedBefore)
+	if filter.startedBefore != nil {
+		tx = tx.Where("started_at <= ?", *filter.startedBefore)
 	}
-	if searchQuery != "" {
-		tx = tx.Where("trigger_payload::text ILIKE ?", "%"+searchQuery+"%")
+	if filter.searchQuery != "" {
+		tx = tx.Where("trigger_payload::text ILIKE ?", "%"+filter.searchQuery+"%")
+	}
+	if filter.automationId != "" {
+		tx = tx.Where("automation_id = ?", filter.automationId)
 	}
 	return tx
+}
+
+func fetchBatchRunStatuses(runs []models.AutomationRun) (map[string]string, error) {
+	idsSet := make(map[string]struct{})
+	for _, run := range runs {
+		if run.BatchRunID != nil && *run.BatchRunID != "" {
+			idsSet[*run.BatchRunID] = struct{}{}
+		}
+	}
+	if len(idsSet) == 0 {
+		return map[string]string{}, nil
+	}
+	ids := make([]string, 0, len(idsSet))
+	for id := range idsSet {
+		ids = append(ids, id)
+	}
+	var batchRuns []models.AutomationBatchRun
+	if err := db.DB.Where("id IN ?", ids).Find(&batchRuns).Error; err != nil {
+		return nil, err
+	}
+	res := make(map[string]string, len(batchRuns))
+	for _, batch := range batchRuns {
+		res[batch.ID] = string(batch.Status)
+	}
+	return res, nil
+}
+
+func collectTriggerPayloadKeys(runs []models.AutomationRun) []string {
+	keySet := make(map[string]struct{})
+	for _, run := range runs {
+		if run.TriggerPayload == nil {
+			continue
+		}
+		for key := range run.TriggerPayload {
+			if key == "" {
+				continue
+			}
+			keySet[key] = struct{}{}
+		}
+	}
+	keys := make([]string, 0, len(keySet))
+	for key := range keySet {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	return keys
 }

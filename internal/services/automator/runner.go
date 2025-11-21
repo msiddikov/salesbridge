@@ -51,6 +51,17 @@ type (
 		edges      map[string]map[string]edgeRef
 		runStatus  *models.AutomationRun
 	}
+
+	collectionResult struct {
+		items   []collectionItem
+		total   int
+		hasMore bool
+	}
+
+	collectionItem struct {
+		payload   map[string]interface{}
+		countsFor int
+	}
 )
 
 // StartAutomationsForTrigger finds active automations for the given location whose
@@ -172,7 +183,6 @@ func StartAutomationsForCollection(ctx context.Context, dbNode models.Node, batc
 
 	automation := dbNode.Automation
 
-	collection := []map[string]interface{}{}
 	nodeConfig := node.Config.EdgeConfig("")
 
 	// for date-based pagination, ensure pages are set
@@ -195,16 +205,16 @@ func StartAutomationsForCollection(ctx context.Context, dbNode models.Node, batc
 		}
 	}
 
-	collection, totalItems, hasMore, err := catalogNode.CollectorFunc(ctx, nodeConfig, automation.Location)
+	res, err := catalogNode.CollectorFunc(ctx, nodeConfig, automation.Location)
 	if err != nil {
 		errorRunTime.runStatus.ErrorMessage = fmt.Sprintf("automator: collect data for collection node: %s", err.Error())
 		db.DB.Save(&errorRunTime.runStatus)
 		return
 	}
 
-	itemsToProcess := getTotalItemsToProcess(totalItems, int(nodeConfig["limit"].(float64)), int(nodeConfig["pageFrom"].(float64)), int(nodeConfig["pageTo"].(float64)))
+	itemsToProcess := getTotalItemsToProcess(res.total, int(nodeConfig["limit"].(float64)), int(nodeConfig["pageFrom"].(float64)), int(nodeConfig["pageTo"].(float64)))
 	batchRun.TotalItems = &itemsToProcess
-	pages := getTotalPagesToProcess(totalItems, int(nodeConfig["limit"].(float64)), int(nodeConfig["pageFrom"].(float64)), int(nodeConfig["pageTo"].(float64)))
+	pages := getTotalPagesToProcess(res.total, int(nodeConfig["limit"].(float64)), int(nodeConfig["pageFrom"].(float64)), int(nodeConfig["pageTo"].(float64)))
 	batchRun.TotalPages = &pages
 	batchRun.CurrentPage = int(nodeConfig["pageFrom"].(float64))
 	batchRun.ItemsProcessed = 0
@@ -213,7 +223,7 @@ func StartAutomationsForCollection(ctx context.Context, dbNode models.Node, batc
 	batchRun.PageTo = &pageTo
 	db.DB.Save(&batchRun)
 
-	for (len(collection) == 0 && hasMore) || (len(collection) > 0) || (nodeConfig["page"].(float64) < nodeConfig["pageTo"].(float64) && nodeConfig["pageTo"].(float64) != 0) {
+	for (len(res.items) == 0 && res.hasMore) || (len(res.items) > 0) || (nodeConfig["page"].(float64) < nodeConfig["pageTo"].(float64) && nodeConfig["pageTo"].(float64) != 0) {
 		if ctx.Err() != nil {
 			now := time.Now()
 			batchRun.Status = models.BatchRunCanceled
@@ -223,7 +233,7 @@ func StartAutomationsForCollection(ctx context.Context, dbNode models.Node, batc
 			return
 		}
 
-		for _, item := range collection {
+		for _, item := range res.items {
 			if ctx.Err() != nil {
 				now := time.Now()
 				batchRun.Status = models.BatchRunCanceled
@@ -233,7 +243,7 @@ func StartAutomationsForCollection(ctx context.Context, dbNode models.Node, batc
 				return
 			}
 
-			payload := clonePayload(item)
+			payload := clonePayload(item.payload)
 			payloads := make(map[string]map[string]interface{})
 			payloads[catalogNode.Ports[0].Name] = payload
 
@@ -282,7 +292,7 @@ func StartAutomationsForCollection(ctx context.Context, dbNode models.Node, batc
 			}
 			db.DB.Save(&runtime.runStatus)
 
-			batchRun.ItemsProcessed++
+			batchRun.ItemsProcessed += item.countsFor
 			if batchRun.TotalItems != nil && *batchRun.TotalItems > 0 {
 				batchRun.ProgressPct = float64(batchRun.ItemsProcessed) / float64(*batchRun.TotalItems) * 100.0
 			}
@@ -293,7 +303,7 @@ func StartAutomationsForCollection(ctx context.Context, dbNode models.Node, batc
 		if nodeConfig["page"].(float64) > nodeConfig["pageTo"].(float64) && nodeConfig["pageTo"].(float64) != 0 {
 			break
 		}
-		collection, _, hasMore, err = catalogNode.CollectorFunc(ctx, nodeConfig, automation.Location)
+		res, err = catalogNode.CollectorFunc(ctx, nodeConfig, automation.Location)
 		if err != nil {
 			errorRunTime.runStatus.ErrorMessage = fmt.Sprintf("automator: collect data for collection node: %s", err.Error())
 			db.DB.Save(&errorRunTime.runStatus)

@@ -529,10 +529,10 @@ func GhlTriggerOpportunityCreated(ctx context.Context, opportunity runwayv2.Oppo
 	return err
 }
 
-func ghlCollectionGetOpportunities(ctx context.Context, fields map[string]interface{}, l models.Location) ([]map[string]interface{}, int, bool, error) {
+func ghlCollectionGetOpportunities(ctx context.Context, fields map[string]interface{}, l models.Location) (collectionResult, error) {
 	cli, err := svc.NewClientFromId(l.Id)
 	if err != nil {
-		return nil, 0, false, err
+		return collectionResult{}, err
 	}
 
 	page, ok := fields["page"].(float64)
@@ -601,16 +601,20 @@ func ghlCollectionGetOpportunities(ctx context.Context, fields map[string]interf
 
 	opps, total, err := cli.OpportunitiesGetByPagination(filter)
 	if err != nil {
-		return nil, 0, false, err
+		return collectionResult{}, err
 	}
 
-	res := []map[string]interface{}{}
+	res := []collectionItem{}
 	for _, opportunity := range opps {
 		payload := mapGhlOpportunityToNodePayload(opportunity)
-		res = append(res, payload)
+		res = append(res, collectionItem{payload: payload, countsFor: 1})
 	}
 
-	return res, total, len(res) != 0, nil
+	return collectionResult{
+		items:   res,
+		total:   total,
+		hasMore: len(res) != 0,
+	}, nil
 }
 
 func ghlActionsUpdateOpportunity(ctx context.Context, fields map[string]interface{}, l models.Location) (payload map[string]map[string]interface{}) {

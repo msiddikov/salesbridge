@@ -26,8 +26,8 @@ type (
 
 	Node struct {
 		Id            string
-		ExecFunc      func(context.Context, map[string]interface{}, models.Location) map[string]map[string]interface{}            `json:"-"`
-		CollectorFunc func(context.Context, map[string]interface{}, models.Location) ([]map[string]interface{}, int, bool, error) `json:"-"`
+		ExecFunc      func(context.Context, map[string]interface{}, models.Location) map[string]map[string]interface{} `json:"-"`
+		CollectorFunc func(context.Context, map[string]interface{}, models.Location) (collectionResult, error)         `json:"-"`
 		Title         string
 		Description   string
 		Type          NodeType
