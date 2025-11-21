@@ -324,7 +324,7 @@ var zenotiCollectionAppointments = Node{
 	},
 }
 
-func zenotiCollectAppointments(ctx context.Context, fields map[string]interface{}, l models.Location) ([]map[string]interface{}, int, bool, error) {
+func zenotiCollectAppointments(ctx context.Context, fields map[string]interface{}, l models.Location) (collectionResult, error) {
 
 	page, ok := fields["page"].(float64)
 	if !ok || page < 1 {
@@ -333,11 +333,11 @@ func zenotiCollectAppointments(ctx context.Context, fields map[string]interface{
 
 	startDateString, ok := fields["dateFrom"].(string)
 	if !ok || startDateString == "" {
-		return nil, 0, false, fmt.Errorf("date from is required")
+		return collectionResult{}, fmt.Errorf("date from is required")
 	}
 	endDateString, ok := fields["dateTo"].(string)
 	if !ok || endDateString == "" {
-		return nil, 0, false, fmt.Errorf("date to is required")
+		return collectionResult{}, fmt.Errorf("date to is required")
 	}
 
 	includeNoShowAndCancels, ok := fields["includeNoShowAndCancels"].(bool)
@@ -347,15 +347,15 @@ func zenotiCollectAppointments(ctx context.Context, fields map[string]interface{
 
 	startDate, err := parseTime(startDateString)
 	if err != nil {
-		return nil, 0, false, fmt.Errorf("invalid date from format")
+		return collectionResult{}, fmt.Errorf("invalid date from format")
 	}
 	endDate, err := parseTime(endDateString)
 	if err != nil {
-		return nil, 0, false, fmt.Errorf("invalid date to format")
+		return collectionResult{}, fmt.Errorf("invalid date to format")
 	}
 
 	if endDate.Before(startDate) {
-		return nil, 0, false, fmt.Errorf("date to must be after date from")
+		return collectionResult{}, fmt.Errorf("date to must be after date from")
 	}
 
 	loc := startDate.Location()
@@ -378,7 +378,7 @@ func zenotiCollectAppointments(ctx context.Context, fields map[string]interface{
 
 	filterDateStart := startDay.AddDate(0, 0, offset)
 	if filterDateStart.After(endDay) {
-		return nil, 0, false, nil
+		return collectionResult{}, nil
 	}
 
 	filterDateEnd := filterDateStart.AddDate(0, 0, 1)
@@ -391,18 +391,18 @@ func zenotiCollectAppointments(ctx context.Context, fields map[string]interface{
 
 	zenotiCli, err := zenotiv1.NewClient(l.Id, l.ZenotiCenterId, l.ZenotiApiObj.ApiKey)
 	if err != nil {
-		return nil, 0, false, err
+		return collectionResult{}, err
 	}
 
 	apps, err := zenotiCli.AppointmentsListAppointments(filter)
 	if err != nil {
-		return nil, 0, false, err
+		return collectionResult{}, err
 	}
 
-	res := []map[string]interface{}{}
+	res := []collectionItem{}
 	for _, app := range apps {
 		payload := mapZenotiAppointmentToNodePayload(app)
-		res = append(res, payload)
+		res = append(res, collectionItem{payload: payload, countsFor: 1})
 	}
 
 	estimatedDaily := len(apps)
@@ -410,10 +410,14 @@ func zenotiCollectAppointments(ctx context.Context, fields map[string]interface{
 		estimatedDaily = 1
 	}
 
-	return res, totalDays * estimatedDaily, true, nil
+	return collectionResult{
+		items:   res,
+		total:   totalDays * estimatedDaily,
+		hasMore: true,
+	}, nil
 }
 
-// Sales
+// Collections
 var zenotiCollectionCollections = Node{
 	Id:            "zenoti.collection.collection",
 	Title:         "Select Collections",
@@ -435,7 +439,7 @@ var zenotiCollectionCollections = Node{
 	},
 }
 
-func zenotiCollectCollections(ctx context.Context, fields map[string]interface{}, l models.Location) ([]map[string]interface{}, int, bool, error) {
+func zenotiCollectCollections(ctx context.Context, fields map[string]interface{}, l models.Location) (collectionResult, error) {
 
 	page, ok := fields["page"].(float64)
 	if !ok || page < 1 {
@@ -444,24 +448,24 @@ func zenotiCollectCollections(ctx context.Context, fields map[string]interface{}
 
 	startDateString, ok := fields["dateFrom"].(string)
 	if !ok || startDateString == "" {
-		return nil, 0, false, fmt.Errorf("date from is required")
+		return collectionResult{}, fmt.Errorf("date from is required")
 	}
 	endDateString, ok := fields["dateTo"].(string)
 	if !ok || endDateString == "" {
-		return nil, 0, false, fmt.Errorf("date to is required")
+		return collectionResult{}, fmt.Errorf("date to is required")
 	}
 
 	startDate, err := parseTime(startDateString)
 	if err != nil {
-		return nil, 0, false, fmt.Errorf("invalid date from format")
+		return collectionResult{}, fmt.Errorf("invalid date from format")
 	}
 	endDate, err := parseTime(endDateString)
 	if err != nil {
-		return nil, 0, false, fmt.Errorf("invalid date to format")
+		return collectionResult{}, fmt.Errorf("invalid date to format")
 	}
 
 	if endDate.Before(startDate) {
-		return nil, 0, false, fmt.Errorf("date to must be after date from")
+		return collectionResult{}, fmt.Errorf("date to must be after date from")
 	}
 
 	loc := startDate.Location()
@@ -484,25 +488,25 @@ func zenotiCollectCollections(ctx context.Context, fields map[string]interface{}
 
 	filterDateStart := startDay.AddDate(0, 0, offset)
 	if filterDateStart.After(endDay) {
-		return nil, 0, false, nil
+		return collectionResult{}, nil
 	}
 
 	filterDateEnd := filterDateStart
 
 	zenotiCli, err := zenotiv1.NewClient(l.Id, l.ZenotiCenterId, l.ZenotiApiObj.ApiKey)
 	if err != nil {
-		return nil, 0, false, err
+		return collectionResult{}, err
 	}
 
 	collections, err := zenotiCli.ReportsCollections(filterDateStart, filterDateEnd)
 	if err != nil {
-		return nil, 0, false, err
+		return collectionResult{}, err
 	}
 
-	res := []map[string]interface{}{}
+	res := []collectionItem{}
 	for _, collection := range collections {
 		payload := mapZenotiCollectionToNodePayload(collection)
-		res = append(res, payload)
+		res = append(res, collectionItem{payload: payload, countsFor: 1})
 	}
 
 	estimatedDaily := len(collections)
@@ -510,7 +514,161 @@ func zenotiCollectCollections(ctx context.Context, fields map[string]interface{}
 		estimatedDaily = 1
 	}
 
-	return res, totalDays * estimatedDaily, true, nil
+	return collectionResult{
+		items:   res,
+		total:   totalDays * estimatedDaily,
+		hasMore: true,
+	}, nil
+}
+
+// Sales
+var (
+	zenotiCollectionSales = Node{
+		Id:            "zenoti.collection.sales",
+		Title:         "Select Sales",
+		Description:   "Selects a Set of Sales from Zenoti.",
+		CollectorFunc: zenotiCollectSales,
+		Type:          NodeTypeCollection,
+		Icon:          "ri:stack",
+		Color:         ColorDefault,
+		Ports: []NodePort{
+			{
+				Name:    "out",
+				Payload: zenotiCollectionSalesNodeFields,
+			},
+			errorPort,
+		},
+		Fields: []NodeField{
+			{Key: "startDate", Label: "Start Date", Type: "datetime", Required: true},
+			{Key: "endDate", Label: "End Date", Type: "datetime", Required: true},
+			{Key: "invoiceStatuses", Label: "Invoice Statuses", Type: "[]string", SelectOptions: []string{"closed", "open"}},
+			{Key: "itemTypes", Label: "Item Types", Type: "[]string", SelectOptions: zenotiv1.GetAllItemTypes()},
+			{Key: "paymentTypes", Label: "Payment Types", Type: "[]string", SelectOptions: zenotiv1.GetAllPaymentTypes()},
+			{Key: "saleTypes", Label: "Sale Types", Type: "[]string", SelectOptions: zenotiv1.GetAllSaleTypes()},
+		},
+	}
+
+	zenotiCollectionSalesNodeFields = []NodeField{
+		{Key: "centerId", Label: "Center ID", Type: "string"},
+		{Key: "centerName", Label: "Center Name", Type: "string"},
+		{Key: "invoiceId", Label: "Invoice ID", Type: "string"},
+
+		{Key: "collected", Label: "Collected", Type: "number"},
+		{Key: "discount", Label: "Discount", Type: "number"},
+		{Key: "redeemed", Label: "Redeemed", Type: "number"},
+		{Key: "taxableRedemption", Label: "Taxable Redemption", Type: "number"},
+		{Key: "salesExTax", Label: "Sales Ex Tax", Type: "number"},
+		{Key: "salesExcludingRedemption", Label: "Sales Excluding Redemption", Type: "number"},
+		{Key: "salesIncTax", Label: "Sales Inc Tax", Type: "number"},
+		{Key: "status", Label: "Status", Type: "string"},
+
+		{Key: "itemId", Label: "Item ID", Type: "string"},
+		{Key: "itemName", Label: "Item Name", Type: "string"},
+		{Key: "itemType", Label: "Item Type", Type: "string"},
+		{Key: "price", Label: "Price", Type: "number"},
+		{Key: "qty", Label: "Quantity", Type: "number"},
+
+		{Key: "guestId", Label: "Guest ID", Type: "string"},
+		{Key: "guestName", Label: "Guest Name", Type: "string"},
+	}
+)
+
+func mapFieldsToZenotiSalesFilter(fields map[string]interface{}) (zenotiv1.SalesAccrualFilter, error) {
+	var filter zenotiv1.SalesAccrualFilter
+
+	startDateStr, ok := fields["startDate"].(string)
+	if !ok || startDateStr == "" {
+		return filter, fmt.Errorf("startDate is required")
+	}
+	endDateStr, ok := fields["endDate"].(string)
+	if !ok || endDateStr == "" {
+		return filter, fmt.Errorf("endDate is required")
+	}
+
+	startDate, err := parseTime(startDateStr)
+	if err != nil {
+		return filter, fmt.Errorf("invalid startDate format")
+	}
+	endDate, err := parseTime(endDateStr)
+	if err != nil {
+		return filter, fmt.Errorf("invalid endDate format")
+	}
+
+	filter.Start_date = zenotiv1.ZenotiTime{Time: startDate}
+	filter.End_date = zenotiv1.ZenotiTime{Time: endDate}
+
+	if v, ok := fields["invoiceStatuses"].([]interface{}); ok {
+		for _, status := range v {
+			if statusStr, ok := status.(string); ok {
+				status := int(-1)
+				switch strings.ToLower(statusStr) {
+				case "closed":
+					status = 1
+				case "open":
+					status = 0
+				}
+
+				filter.Invoice_statuses = append(filter.Invoice_statuses, zenotiv1.InvoiceStatus(status))
+			}
+		}
+	}
+
+	if v, ok := fields["itemTypes"].([]interface{}); ok {
+		for _, itemType := range v {
+			if itemTypeStr, ok := itemType.(string); ok {
+				filter.Item_types = append(filter.Item_types, zenotiv1.ItemType(itemTypeStr))
+			}
+		}
+	}
+	if v, ok := fields["paymentTypes"].([]interface{}); ok {
+		for _, paymentType := range v {
+			if paymentTypeStr, ok := paymentType.(string); ok {
+				pt, _ := zenotiv1.GetPaymentType(paymentTypeStr)
+				filter.Payment_types = append(filter.Payment_types, pt)
+			}
+		}
+	}
+	if v, ok := fields["saleTypes"].([]interface{}); ok {
+		for _, saleType := range v {
+			if saleTypeStr, ok := saleType.(string); ok {
+				st, _ := zenotiv1.GetSaleType(saleTypeStr)
+				filter.Sale_types = append(filter.Sale_types, st)
+			}
+		}
+	}
+
+	return filter, nil
+}
+func mapZenotiSaleToNodePayload(sale zenotiv1.SalesDetails) map[string]interface{} {
+	res := make(map[string]interface{})
+	res["centerId"] = sale.Center_id
+	res["centerName"] = sale.Center.Name
+	res["invoiceId"] = sale.Invoice.Id
+
+	res["collected"] = sale.Collected.Sum_Total
+	res["discount"] = sale.Discount.Sum_Total
+	res["redeemed"] = sale.Redeemed.Sum_Total
+	res["taxableRedemption"] = sale.Taxable_Redemption.Sum_Total
+	res["salesExTax"] = sale.Sales_Ex_Tax.Sum_Total
+	res["salesExcludingRedemption"] = sale.Sales_Excluding_Redemption.Sum_Total
+	res["salesIncTax"] = sale.Sales_Inc_Tax.Sum_Total
+	res["status"] = sale.Status.String()
+
+	if len(sale.Items) > 0 {
+		res["itemId"] = sale.Items[0].Item.Id
+		res["itemName"] = sale.Items[0].Item.Name
+		res["itemType"] = sale.Items[0].Item.Type.String()
+		res["price"] = sale.Items[0].Price.Sum_Total
+		res["qty"] = sale.Items[0].Qty
+	}
+
+	res["guestId"] = sale.Guest.Id
+	res["guestName"] = sale.Guest.Name
+
+	return res
+}
+
+func zenotiCollectSales(ctx context.Context, fields map[string]interface{}, l models.Location) (collectionResult, error) {
 }
 
 var (
