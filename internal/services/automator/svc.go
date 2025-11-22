@@ -175,9 +175,14 @@ func ExportAutomationRuns(c *gin.Context) {
 			duration = run.CompletedAt.Sub(run.StartedAt).String()
 		}
 
-		nodeNames := make([]string, 0, len(run.RunNodes))
-		for _, nodeRun := range run.RunNodes {
-			nodeNames = append(nodeNames, nodeRun.NodeName)
+		sortedNodes := append([]models.AutomationRunNode(nil), run.RunNodes...)
+		sort.Slice(sortedNodes, func(i, j int) bool {
+			return sortedNodes[i].Sequence < sortedNodes[j].Sequence
+		})
+
+		nodeNames := make([]string, 0, len(sortedNodes))
+		for _, nodeRun := range sortedNodes {
+			nodeNames = append(nodeNames, nodeRunDisplayName(nodeRun))
 		}
 
 		batchStatus := ""
@@ -192,8 +197,8 @@ func ExportAutomationRuns(c *gin.Context) {
 			ended,
 			duration,
 			string(run.Status),
-			strconv.Itoa(len(run.RunNodes)),
-			strings.Join(nodeNames, " > "),
+			strconv.Itoa(len(sortedNodes)),
+			strings.Join(nodeNames, ", "),
 			batchStatus,
 			strconv.Itoa(run.RunNodesWithErrors),
 			run.ErrorMessage,
@@ -395,4 +400,18 @@ func collectTriggerPayloadKeys(runs []models.AutomationRun) []string {
 	}
 	sort.Strings(keys)
 	return keys
+}
+
+func nodeRunDisplayName(node models.AutomationRunNode) string {
+	name := strings.TrimSpace(node.NodeName)
+	if name != "" {
+		return name
+	}
+	if node.NodeType != "" {
+		return strings.TrimSpace(node.NodeType)
+	}
+	if node.NodeID != "" {
+		return node.NodeID
+	}
+	return "Unnamed node"
 }

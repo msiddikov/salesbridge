@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 )
 
 var (
@@ -29,15 +30,14 @@ var (
 		Id:          "others.delay",
 		Title:       "Delay",
 		Description: "Delays the workflow for a specified amount of time.",
+		ExecFunc:    othersDelay,
 		Type:        NodeTypeAction,
 		Icon:        "ri:timer-flash-line",
 		Color:       ColorDefault,
-		Ports: []NodePort{
-			{Name: "done"},
-		},
+		Ports:       []NodePort{customPort("done", []NodeField{})},
 		Fields: []NodeField{
-			{Key: "duration", Type: "number", Required: true},
-			{Key: "unit", Type: "string", Required: true},
+			{Key: "duration", Type: "string", Required: true},
+			{Key: "unit", Type: "string", Required: true, SelectOptions: []string{"seconds", "minutes"}},
 		},
 	}
 
@@ -206,4 +206,33 @@ func othersTransformNumber(ctx context.Context, fields map[string]interface{}, l
 	}
 
 	return successPayload(payloadData)
+}
+
+func othersDelay(ctx context.Context, fields map[string]interface{}, l models.Location) (payload map[string]map[string]interface{}) {
+	durationStr, ok := fields["duration"].(string)
+	if !ok {
+		return errorPayload(fmt.Errorf("invalid duration"), "error")
+	}
+	duration, ok := toFloat(durationStr)
+	if !ok {
+		return errorPayload(fmt.Errorf("invalid duration"), "error")
+	}
+
+	unit, ok := fields["unit"].(string)
+	if !ok {
+		return errorPayload(fmt.Errorf("invalid unit"), "error")
+	}
+	var timeDuration time.Duration
+	switch unit {
+	case "seconds":
+		timeDuration = time.Duration(duration) * time.Second
+	case "minutes":
+		timeDuration = time.Duration(duration) * time.Minute
+	default:
+		return errorPayload(fmt.Errorf("invalid unit"), "error")
+	}
+
+	time.Sleep(timeDuration)
+
+	return customPayload("done", map[string]interface{}{})
 }

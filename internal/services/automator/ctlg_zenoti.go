@@ -703,9 +703,24 @@ func zenotiCollectSales(ctx context.Context, fields map[string]interface{}, l mo
 		return collectionResult{}, err
 	}
 
+	// fetch next page in case if the current invoice is split across pages
+	page2 := pageInfo
+	page2.Page = page2.Page + 1
+
+	sales2, _, err := zenotiCli.ReportsSalesAccrual(filter, page2)
+	if err != nil {
+		return collectionResult{}, err
+	}
+
 	invoices := map[string][]zenotiv1.SalesDetails{}
 	for _, sale := range sales {
 		invoices[sale.Invoice_id] = append(invoices[sale.Invoice_id], sale)
+	}
+	for _, sale := range sales2 {
+		_, exists := invoices[sale.Invoice_id]
+		if exists {
+			invoices[sale.Invoice_id] = append(invoices[sale.Invoice_id], sale)
+		}
 	}
 
 	res := []collectionItem{}

@@ -5,6 +5,7 @@ import (
 	"client-runaway-zenoti/internal/services/svc_ghl"
 	runwayv2 "client-runaway-zenoti/packages/runwayV2"
 	"context"
+	"fmt"
 	"strconv"
 	"strings"
 )
@@ -815,9 +816,9 @@ func ghlActionsRegisterSalesNote(ctx context.Context, fields map[string]interfac
 		return errorPayload(nil, "value is required")
 	}
 
-	value, err := strconv.ParseFloat(valueStr, 64)
-	if err != nil {
-		return errorPayload(err, "failed to parse value")
+	value, ok := toFloat(valueStr)
+	if !ok {
+		return errorPayload(fmt.Errorf("failed to parse value"), "error")
 	}
 
 	dateStr, ok := fields["date"].(string)
