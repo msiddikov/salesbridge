@@ -19,14 +19,15 @@ import (
 
 type (
 	automationRunFilter struct {
-		automationId  string
-		status        string
-		startedAfter  *time.Time
-		startedBefore *time.Time
-		searchQuery   string
-		batchRunID    string
-		limit         int
-		offset        int
+		automationId    string
+		status          string
+		startedAfter    *time.Time
+		startedBefore   *time.Time
+		searchQuery     string
+		batchRunID      string
+		limit           int
+		offset          int
+		preloadNodeRuns bool
 	}
 )
 
@@ -128,6 +129,7 @@ func getAutomationRunFilterFromContext(c *gin.Context) automationRunFilter {
 
 func ExportAutomationRuns(c *gin.Context) {
 	filter := getAutomationRunFilterFromContext(c)
+	filter.preloadNodeRuns = true
 
 	filter.limit = 1000000
 	filter.offset = 0
@@ -352,6 +354,9 @@ func applyRunFilters(tx *gorm.DB, filter automationRunFilter) *gorm.DB {
 	}
 	if filter.automationId != "" {
 		tx = tx.Where("automation_id = ?", filter.automationId)
+	}
+	if filter.preloadNodeRuns {
+		tx = tx.Preload("RunNodes")
 	}
 	return tx
 }
