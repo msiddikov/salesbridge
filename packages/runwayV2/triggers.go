@@ -11,7 +11,7 @@ func (a *Client) TriggerFire(url string, body string) (err error) {
 
 	_, _, err = a.fetchUrl(url, req, nil)
 
-	if strings.Contains(err.Error(), " is inactive.") {
+	if err != nil && strings.Contains(err.Error(), " is inactive.") {
 		return nil // Ignore inactive triggers
 	}
 

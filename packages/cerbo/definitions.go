@@ -20,7 +20,11 @@ type (
 		Title               string    `json:"title"`
 		AppointmentStatus   string    `json:"appointment_status"`
 		AppointmentLocation string    `json:"appointment_location"`
-		Patient             Patient   `json:"patient"`
+		AssignedProviders   []struct {
+			Id    string `json:"id"`
+			First string `json:"first"`
+		} `json:"assigned_providers"`
+		Patient Patient `json:"patient"`
 	}
 
 	Patient struct {
@@ -30,6 +34,7 @@ type (
 		Dob       string `json:"dob"`
 		Email     string `json:"email1"`
 		Phone     string `json:"phone_mobile"`
+		Provider  string `json:"provider"`
 	}
 
 	CerboTime struct {

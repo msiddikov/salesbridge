@@ -5,6 +5,7 @@ import (
 	"client-runaway-zenoti/internal/db/models"
 	"client-runaway-zenoti/internal/runway"
 	"client-runaway-zenoti/packages/cerbo"
+	"encoding/json"
 
 	lvn "github.com/Lavina-Tech-LLC/lavinagopackage/v2"
 	"github.com/gin-gonic/gin"
@@ -39,6 +40,23 @@ func ScheduleUpsertHandler(data cerbo.WebhookData) error {
 	if err != nil {
 		return err
 	}
+
+	dataStruct := cerbo.Schedule{}
+	err = json.Unmarshal(data.Data, &dataStruct)
+	if err != nil {
+		return err
+	}
+
+	for _, provider := range dataStruct.AssignedProviders {
+		dataStruct.Patient.Provider += provider.First
+	}
+
+	dataBytes, err := lvn.Marshal(dataStruct)
+	if err != nil {
+		return err
+	}
+
+	data.Data = dataBytes
 
 	// marshal the data to be sent to the triggers
 	body, err := lvn.Marshal(data)

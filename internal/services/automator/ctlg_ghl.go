@@ -352,7 +352,7 @@ var (
 	}
 
 	ghlOpportunityUpdateFields = []NodeField{
-		{Key: "opportunityId", Type: "string"},
+		{Key: "opportunityId", Type: "string", Required: true},
 		{Key: "updateName", Label: "Update name", Type: "bool"},
 		{Key: "name", Label: "Name", Type: "string"},
 		{Key: "updateMonetaryValue", Label: "Update Monetary Value", Type: "bool"},
