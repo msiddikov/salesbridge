@@ -24,10 +24,10 @@ type (
 			Id    string `json:"id"`
 			First string `json:"first"`
 		} `json:"assigned_providers"`
-		Patient Patient `json:"patient"`
+		Patient SchedulePatient `json:"patient"`
 	}
 
-	Patient struct {
+	SchedulePatient struct {
 		Id        string `json:"id"`
 		FirstName string `json:"first"`
 		LastName  string `json:"last"`
@@ -35,6 +35,24 @@ type (
 		Email     string `json:"email1"`
 		Phone     string `json:"phone_mobile"`
 		Provider  string `json:"provider"`
+	}
+
+	Patient struct {
+		Id                string `json:"id"`
+		FirstName         string `json:"first_name"`
+		LastName          string `json:"last_name"`
+		Dob               string `json:"dob"`
+		Email             string `json:"email1"`
+		Phone             string `json:"phone_mobile"`
+		PrimaryProviderId int    `json:"primary_provider_id"`
+	}
+
+	User struct {
+		Id        string `json:"id"`
+		FirstName string `json:"first_name"`
+		LastName  string `json:"last_name"`
+		Prefix    string `json:"prefix"`
+		Email     string `json:"email"`
 	}
 
 	CerboTime struct {

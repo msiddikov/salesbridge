@@ -6,9 +6,16 @@ import (
 	"client-runaway-zenoti/internal/runway"
 	"client-runaway-zenoti/packages/cerbo"
 	"encoding/json"
+	"fmt"
 
 	lvn "github.com/Lavina-Tech-LLC/lavinagopackage/v2"
 	"github.com/gin-gonic/gin"
+)
+
+var (
+	subdomain = "medmatrixemr"
+	cerboUser = "pk_hello123"
+	cerboPass = "sk_hWhAqg_HaCesGMt_VfrxSyOt_FaGX"
 )
 
 func WebhookHandler(c *gin.Context) {
@@ -50,6 +57,22 @@ func ScheduleUpsertHandler(data cerbo.WebhookData) error {
 	for _, provider := range dataStruct.AssignedProviders {
 		dataStruct.Patient.Provider += provider.First
 	}
+
+	cli, err := cerbo.NewClient(subdomain, cerboUser, cerboPass)
+	if err != nil {
+		return err
+	}
+	patient, err := cli.GetPatient(dataStruct.Patient.Id)
+	if err != nil {
+		return err
+	}
+
+	user, err := cli.GetUser(fmt.Sprint(patient.PrimaryProviderId))
+	if err != nil {
+		return err
+	}
+
+	dataStruct.Patient.Provider = user.FirstName + " " + user.LastName
 
 	dataBytes, err := lvn.Marshal(dataStruct)
 	if err != nil {
