@@ -35,6 +35,7 @@ type (
 		Email     string `json:"email1"`
 		Phone     string `json:"phone_mobile"`
 		Provider  string `json:"provider"`
+		Tags      string `json:"tags,omitempty"`
 	}
 
 	Patient struct {
@@ -45,6 +46,12 @@ type (
 		Email             string `json:"email1"`
 		Phone             string `json:"phone_mobile"`
 		PrimaryProviderId int    `json:"primary_provider_id"`
+		Tags              []struct {
+			Name        string    `json:"name"`
+			TagCategory string    `json:"tag_category"`
+			Note        string    `json:"note"`
+			DateApplied CerboTime `json:"date_applied"`
+		} `json:"tags,omitempty"`
 	}
 
 	User struct {

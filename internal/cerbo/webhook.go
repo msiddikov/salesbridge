@@ -7,6 +7,7 @@ import (
 	"client-runaway-zenoti/packages/cerbo"
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	lvn "github.com/Lavina-Tech-LLC/lavinagopackage/v2"
 	"github.com/gin-gonic/gin"
@@ -73,7 +74,14 @@ func ScheduleUpsertHandler(data cerbo.WebhookData) error {
 	}
 
 	dataStruct.Patient.Provider = user.FirstName + " " + user.LastName
+	tags := []string{}
+	for _, tag := range patient.Tags {
+		tags = append(tags, tag.Name)
+	}
 
+	dataStruct.Patient.Tags = strings.Join(tags, ", ")
+
+	// update the data field
 	dataBytes, err := lvn.Marshal(dataStruct)
 	if err != nil {
 		return err
