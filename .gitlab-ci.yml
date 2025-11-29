@@ -1,0 +1,4 @@
+include:
+  - project: "devops/ci_cd"
+    file: "build-push-frontend-docker.gitlab-ci.yml"
+    ref: main
