@@ -244,10 +244,6 @@ func validateAutomationGraph(auto models.Automation) []error {
 		}
 	}
 
-	if len(graph.Entry) == 0 {
-		errs = append(errs, errors.New("automation graph must define at least one entry node"))
-	}
-
 	for idx, entryID := range graph.Entry {
 		if entryID == "" {
 			errs = append(errs, fmt.Errorf("entry reference at position %d is empty", idx))
