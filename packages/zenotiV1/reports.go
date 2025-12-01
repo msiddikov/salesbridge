@@ -122,3 +122,63 @@ func (c *Client) ReportsSalesAccrual(filter SalesAccrualFilter, pager PageInfo) 
 	}, &res)
 	return res.Sales, res.Page_info, err
 }
+
+//
+// New collections report
+//
+
+type CollectionsFilter struct {
+	Start_date ZenotiTime `json:"start_date"`
+	End_date   ZenotiTime `json:"end_date"`
+	Centers    struct {
+		CenterType int      `json:"type"`
+		IDs        []string `json:"ids"`
+	} `json:"centers"`
+	Invoice_statuses []InvoiceStatus `json:"invoice_statuses"` // 0-Open, 4 - Closed
+	Payment_types    []PaymentType   `json:"payment_types"`
+	Sale_types       []SaleType      `json:"sale_types"`
+}
+
+type CollectionDetails struct {
+	Center_id           string
+	Center_name         string
+	Invoice_id          string
+	Invoice_closed_date ZenotiTime
+	Payment_date        ZenotiTime
+
+	Total_paid float64
+
+	Guest_id   string
+	Guest_name string
+}
+
+func (c *Client) ReportsNewCollections(filter CollectionsFilter, pager PageInfo) ([]CollectionDetails, PageInfo, error) {
+	filter.Centers.CenterType = 2
+	res := struct {
+		Collections []CollectionDetails `json:"collections"`
+		Page_info   PageInfo            `json:"page_info"`
+		Error       string              `json:"error"`
+	}{}
+
+	bodyBytes, err := json.Marshal(filter)
+	if err != nil {
+		return nil, PageInfo{}, err
+	}
+
+	_, _, err = c.fetch(reqParams{
+		Method:   "POST",
+		Endpoint: "/reports/collections/flat_file",
+		QParams: []queryParam{
+			{
+				Key:   "page",
+				Value: strconv.Itoa(pager.Page),
+			},
+			{
+				Key:   "size",
+				Value: strconv.Itoa(pager.Size),
+			},
+		},
+		Body: string(bodyBytes),
+	}, &res)
+	return res.Collections, res.Page_info, err
+}

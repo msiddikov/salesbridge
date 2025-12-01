@@ -23,6 +23,7 @@ var (
 			zenotiTriggerAppointmentCreated,
 			zenotiTriggerInvoiceClosed,
 			zenotiCollectionAppointments,
+			zenotiCollectionCollectionsNew,
 			zenotiCollectionCollections,
 			zenotiCollectionSales,
 			zenotiActionMergeAppointment,
@@ -756,6 +757,168 @@ func zenotiCollectSales(ctx context.Context, fields map[string]interface{}, l mo
 		resLine["salesIncTax"] = fmt.Sprintf("%.2f", resLine["salesIncTax"].(float64))
 
 		res = append(res, collectionItem{payload: resLine, countsFor: len(salesDetails)})
+	}
+
+	return collectionResult{
+		items:   res,
+		total:   pageInfo.Total,
+		hasMore: pageInfo.Page*pageInfo.Size < pageInfo.Total,
+	}, nil
+
+}
+
+// Collections - new report
+
+var zenotiCollectionCollectionsNew = Node{
+	Id:            "zenoti.collection.collectionNew",
+	Title:         "Select Collections with new report",
+	Description:   "Selects a Set of Collections from Zenoti from new report.",
+	CollectorFunc: zenotiCollectCollectionsNew,
+	Type:          NodeTypeCollection,
+	Icon:          "ri:stack",
+	Color:         ColorDefault,
+	Ports: []NodePort{
+		{
+			Name:    "out",
+			Payload: zenotiCollectionDetailNodeFields,
+		},
+		errorPort,
+	},
+	Fields: zenotiCollectionsDetailsFilterNodeFields,
+}
+
+func mapFieldsToZenotiCollectionsFilter(fields map[string]interface{}) (zenotiv1.CollectionsFilter, error) {
+	var filter zenotiv1.CollectionsFilter
+
+	startDateStr, ok := fields["startDate"].(string)
+	if !ok || startDateStr == "" {
+		return filter, fmt.Errorf("startDate is required")
+	}
+	endDateStr, ok := fields["endDate"].(string)
+	if !ok || endDateStr == "" {
+		return filter, fmt.Errorf("endDate is required")
+	}
+
+	startDate, err := parseTime(startDateStr)
+	if err != nil {
+		return filter, fmt.Errorf("invalid startDate format")
+	}
+	endDate, err := parseTime(endDateStr)
+	if err != nil {
+		return filter, fmt.Errorf("invalid endDate format")
+	}
+
+	filter.Start_date = zenotiv1.ZenotiTime{Time: startDate}
+	filter.End_date = zenotiv1.ZenotiTime{Time: endDate}
+
+	if v, ok := fields["invoiceStatuses"].([]interface{}); ok {
+		for _, status := range v {
+			if statusStr, ok := status.(string); ok {
+				status := int(-1)
+				switch strings.ToLower(statusStr) {
+				case "closed":
+					status = 4
+				case "open":
+					status = 0
+				}
+
+				filter.Invoice_statuses = append(filter.Invoice_statuses, zenotiv1.InvoiceStatus(status))
+			}
+		}
+	}
+	if v, ok := fields["paymentTypes"].([]interface{}); ok {
+		for _, paymentType := range v {
+			if paymentTypeStr, ok := paymentType.(string); ok {
+				pt, _ := zenotiv1.GetPaymentType(paymentTypeStr)
+				filter.Payment_types = append(filter.Payment_types, pt)
+			}
+		}
+	}
+	if v, ok := fields["saleTypes"].([]interface{}); ok {
+		for _, saleType := range v {
+			if saleTypeStr, ok := saleType.(string); ok {
+				st, _ := zenotiv1.GetSaleType(saleTypeStr)
+				filter.Sale_types = append(filter.Sale_types, st)
+			}
+		}
+	}
+
+	return filter, nil
+}
+
+var zenotiCollectionsDetailsFilterNodeFields = []NodeField{
+	{Key: "limit", Label: "Limit", Type: "number"},
+	{Key: "pageFrom", Label: "Page From", Type: "number"},
+	{Key: "pageTo", Label: "Page To", Type: "number"},
+	{Key: "startDate", Label: "Start Date", Type: "datetime"},
+	{Key: "endDate", Label: "End Date", Type: "datetime"},
+	{Key: "invoiceStatuses", Label: "Invoice Statuses", Type: "[]string", SelectOptions: []string{"closed", "open"}},
+	{Key: "paymentTypes", Label: "Payment Types", Type: "[]string", SelectOptions: zenotiv1.GetAllPaymentTypes()},
+	{Key: "saleTypes", Label: "Sale Types", Type: "[]string", SelectOptions: zenotiv1.GetAllSaleTypes()},
+}
+
+func mapZenotiCollectionDetailsToNodePayload(collection zenotiv1.CollectionDetails) map[string]interface{} {
+	res := make(map[string]interface{})
+	res["centerId"] = collection.Center_id
+	res["centerName"] = collection.Center_name
+	res["invoiceId"] = collection.Invoice_id
+	res["invoiceClosedDate"] = collection.Invoice_closed_date.Time.Format(time.RFC3339)
+
+	res["totalPaid"] = fmt.Sprintf("%.2f", collection.Total_paid)
+
+	res["guestId"] = collection.Guest_id
+	res["guestName"] = collection.Guest_name
+
+	return res
+}
+
+var zenotiCollectionDetailNodeFields = []NodeField{
+	{Key: "centerId", Label: "Center ID", Type: "string"},
+	{Key: "centerName", Label: "Center Name", Type: "string"},
+	{Key: "invoiceId", Label: "Invoice ID", Type: "string"},
+	{Key: "invoiceClosedDate", Label: "Invoice Closed Date", Type: "string"},
+
+	{Key: "totalPaid", Label: "Total Paid", Type: "number"},
+
+	{Key: "guestId", Label: "Guest ID", Type: "string"},
+	{Key: "guestName", Label: "Guest Name", Type: "string"},
+}
+
+func zenotiCollectCollectionsNew(ctx context.Context, fields map[string]interface{}, l models.Location) (collectionResult, error) {
+	filter, err := mapFieldsToZenotiCollectionsFilter(fields)
+	if err != nil {
+		return collectionResult{}, err
+	}
+	limit, ok := fields["limit"].(float64)
+	if !ok || limit < 1 {
+		limit = 50
+	}
+	page, ok := fields["page"].(float64)
+	if !ok || page < 1 {
+		page = 1
+	}
+
+	pageInfo := zenotiv1.PageInfo{
+		Size: int(limit),
+		Page: int(page),
+	}
+
+	filter.Centers.IDs = []string{l.ZenotiCenterId}
+
+	zenotiCli, err := zenotiv1.NewClient(l.Id, l.ZenotiCenterId, l.ZenotiApiObj.ApiKey)
+	if err != nil {
+		return collectionResult{}, err
+	}
+
+	collections, pageInfo, err := zenotiCli.ReportsNewCollections(filter, pageInfo)
+	if err != nil {
+		return collectionResult{}, err
+	}
+
+	res := []collectionItem{}
+	for _, collection := range collections {
+		payload := mapZenotiCollectionDetailsToNodePayload(collection)
+		res = append(res, collectionItem{payload: payload, countsFor: 1})
 	}
 
 	return collectionResult{
