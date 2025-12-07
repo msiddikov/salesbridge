@@ -8,6 +8,7 @@ import (
 	"client-runaway-zenoti/internal/services/svc_attribution"
 	"client-runaway-zenoti/internal/services/svc_config"
 	"client-runaway-zenoti/internal/services/svc_ghl"
+	"client-runaway-zenoti/internal/services/svc_googleads"
 	svc_jpmreport "client-runaway-zenoti/internal/services/svc_jpmReport"
 	"client-runaway-zenoti/internal/services/svc_zenoti"
 
@@ -69,5 +70,23 @@ func setRoutes(router *gin.Engine) {
 	// Integrations routes
 	integrations := router.Group("/integrations")
 	integrations.GET("/zenoti/centers/:zenotiApiId", auth.Auth, svc_zenoti.GetZenotiCenters)
+
+	// Google Ads OAuth (new flow; legacy jpmReport remains unchanged)
+	ga := router.Group("/google-ads")
+	ga.GET("/auth-url", auth.Auth, svc_googleads.GetAuthURL)
+	ga.POST("/callback", svc_googleads.OAuthCallback)
+	ga.GET("/callback", svc_googleads.OAuthCallback)
+	ga.GET("/accounts", auth.Auth, svc_googleads.ListConnections)
+	ga.DELETE("/accounts/:accountId", auth.Auth, svc_googleads.DeleteConnection)
+	ga.GET("/accounts/:accountId/customers", auth.Auth, svc_googleads.ListCustomers)
+	ga.GET("/accounts/:accountId/hierarchy", auth.Auth, svc_googleads.ListAccountHierarchy)
+	ga.POST("/locations/:locationId/settings", auth.Auth, svc_googleads.SaveLocationSetting)
+
+	// Legacy aliases to avoid breaking existing references
+	legacyGA := router.Group("/googleads")
+	legacyGA.GET("/oauth/url", auth.Auth, svc_googleads.GetAuthURL)
+	legacyGA.GET("/connections", auth.Auth, svc_googleads.ListConnections)
+	legacyGA.DELETE("/connections/:accountId", auth.Auth, svc_googleads.DeleteConnection)
+	router.GET("/googleads/oauth/callback", svc_googleads.OAuthCallback)
 
 }
