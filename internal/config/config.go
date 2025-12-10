@@ -30,6 +30,11 @@ type (
 		Token        string
 		RefreshToken string
 
+		// Google Ads OAuth (new flow; jpmReport still uses legacy service-account path)
+		GoogleAdsClientId     string
+		GoogleAdsClientSecret string
+		GoogleAdsRedirectUrl  string
+
 		CRAgencyAPI string
 	}
 

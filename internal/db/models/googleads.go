@@ -29,6 +29,7 @@ type GoogleAdsLocationSetting struct {
 	LocationId       string `gorm:"index:idx_ga_loc_profile,unique"`
 	ProfileID        uint   `gorm:"index:idx_ga_loc_profile,unique"`
 	ConnectionID     uint   `gorm:"index"`
+	ConnectionName   string
 	CustomerID       string
 	CustomerName     string
 	ManagerID        string

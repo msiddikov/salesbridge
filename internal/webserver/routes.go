@@ -78,9 +78,10 @@ func setRoutes(router *gin.Engine) {
 	ga.GET("/callback", svc_googleads.OAuthCallback)
 	ga.GET("/accounts", auth.Auth, svc_googleads.ListConnections)
 	ga.DELETE("/accounts/:accountId", auth.Auth, svc_googleads.DeleteConnection)
-	ga.GET("/accounts/:accountId/customers", auth.Auth, svc_googleads.ListCustomers)
 	ga.GET("/accounts/:accountId/hierarchy", auth.Auth, svc_googleads.ListAccountHierarchy)
 	ga.POST("/locations/:locationId/settings", auth.Auth, svc_googleads.SaveLocationSetting)
+	ga.GET("/locations/:locationId/settings", auth.Auth, svc_googleads.GetLocationSetting)
+	ga.GET("/locations/:locationId/conversion-actions", auth.Auth, svc_googleads.GetLocationConversionActions)
 
 	// Legacy aliases to avoid breaking existing references
 	legacyGA := router.Group("/googleads")

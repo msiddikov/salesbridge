@@ -94,6 +94,11 @@ func Migrate() {
 		panic(err)
 	}
 
+	err = DB.AutoMigrate(&models.GoogleAdsConnection{}, &models.GoogleAdsLocationSetting{})
+	if err != nil {
+		panic(err)
+	}
+
 	defContact := models.Contact{
 		LocationId:    "0",
 		ContactId:     "0",

@@ -6,9 +6,9 @@ import (
 )
 
 func TestInvoicesGetDetails(t *testing.T) {
-	client := getTribecaClient()
+	client := getNaplesClient()
 
-	res, err := client.InvoicesGetDetails("d663c848-2317-4ac9-bee4-5d6746d54506")
+	res, err := client.InvoicesGetDetails("4829909a-b565-4ffc-9aeb-65546c456ab2")
 	if err != nil {
 		t.Error(err)
 	}

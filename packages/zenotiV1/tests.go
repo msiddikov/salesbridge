@@ -70,6 +70,23 @@ func getTribecaClient() Client {
 	}
 }
 
+func getNaplesClient() Client {
+	locationId := "VTuXXGb0flmRx2YOE5O0"
+	centerId := "540bad63-a729-4720-8fa9-29f017c82e74"
+	apiKey := "12687dc090584bfc963e5b43ba36c7ea285fec1e8afa438797d803a86050df92"
+
+	return Client{
+		cfg: config{
+			locationId: locationId,
+			centerId:   centerId,
+			apiKey:     apiKey,
+			created:    time.Now(),
+			host:       hostProd,
+		},
+		service: Service{},
+	}
+}
+
 func getSkinlabClient() Client {
 	locationId := "aTVEb9wmnz5wD53YMFwc"
 	centerId := "48c67965-eb5a-4926-9c67-d816da3c266f"

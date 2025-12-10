@@ -5,86 +5,101 @@ import (
 	"fmt"
 	"time"
 
-	"golang.org/x/oauth2/google"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/metadata"
-
-	"github.com/shenzhencenter/google-ads-pb/services"
 )
 
-const (
-	scopeAdwords = "https://www.googleapis.com/auth/adwords"
-	baseURL      = "https://googleads.googleapis.com/v18"
+type (
+	Service struct {
+		ClientID     string
+		ClientSecret string
+		RedirectURL  string
 
-	developerToken  = "gda-62oYP_OW7r3h4A4HJw"
-	loginCustomerID = "6309578268"
+		Scope                  string
+		SaveConnection         func(Connection) (Connection, error)
+		UpdateConnectionTokens func(Connection) error
+		GetConnectionByID      func(uint) (Connection, error)
+		now                    func() time.Time
+		tokenExpiryLeeway      time.Duration
+	}
+
+	Client struct {
+		CustomerInfo CustomerInfo
+
+		ctx      context.Context
+		grpcConn *grpc.ClientConn
+	}
+
+	CustomerInfo struct {
+		CustomerID       string
+		ClientCustomerID string
+		ManagerID        string
+	}
 )
 
-func GetAdSpendGoPkg(
-	ctx context.Context,
-	customerID string,
-	startDateT time.Time,
-	endDateT time.Time,
-) (float64, error) {
+func NewService(
+	ClientId, ClientSecret, RedirectURL string,
+	saveConnection func(Connection) (Connection, error),
+	updateConnectionTokens func(Connection) error,
+	getConnectionByID func(uint) (Connection, error),
+) Service {
+	svc := Service{
+		ClientID:     ClientId,
+		ClientSecret: ClientSecret,
+		RedirectURL:  RedirectURL,
 
-	startDate := startDateT.Format("2006-01-02")
-	endDate := endDateT.Format("2006-01-02")
-	// 1) Exchange service account JSON for an OAuth2 access token (scope: adwords)
-	creds, err := google.CredentialsFromJSON(ctx, getKeyData(), "https://www.googleapis.com/auth/adwords")
+		SaveConnection:         saveConnection,
+		UpdateConnectionTokens: updateConnectionTokens,
+		GetConnectionByID:      getConnectionByID,
+		now:                    time.Now,
+		tokenExpiryLeeway:      1 * time.Minute,
+	}
+	return svc
+}
+
+func (s *Service) NewClient(connId uint, customerInfo CustomerInfo) (*Client, error) {
+	conn, err := s.GetConnectionByID(connId)
 	if err != nil {
-		return 0, fmt.Errorf("creds from json: %w", err)
+		return nil, err
 	}
-	tok, err := creds.TokenSource.Token()
+
+	ctx := context.Background()
+	ctx, _, err = s.WithHeaders(ctx, conn)
 	if err != nil {
-		return 0, fmt.Errorf("token: %w", err)
+		return nil, err
 	}
 
-	// 2) gRPC connection to Google Ads API
-	conn, err := grpc.NewClient(
-		"googleads.googleapis.com:443",
-		grpc.WithTransportCredentials(credentials.NewClientTLSFromCert(nil, "")),
-	)
+	grpcConn, err := grpc.NewClient("googleads.googleapis.com:443", grpc.WithTransportCredentials(credentials.NewClientTLSFromCert(nil, "")))
 	if err != nil {
-		return 0, fmt.Errorf("dial: %w", err)
-	}
-	defer conn.Close()
-
-	// 3) Required headers
-	mdPairs := []string{
-		"authorization", "Bearer " + tok.AccessToken,
-		"developer-token", developerToken,
-	}
-	if loginCustomerID != "" {
-		mdPairs = append(mdPairs, "login-customer-id", loginCustomerID)
-	}
-	ctx = metadata.NewOutgoingContext(ctx, metadata.Pairs(mdPairs...))
-
-	// 4) Run GAQL (Search). We’ll sum cost_micros client-side.
-	query := fmt.Sprintf(`
-SELECT
-  metrics.cost_micros
-FROM customer
-WHERE segments.date BETWEEN '%s' AND '%s'`, startDate, endDate)
-
-	req := &services.SearchGoogleAdsRequest{
-		CustomerId: customerID,
-		Query:      query,
-		// Optional: PageSize: 10000,
+		return nil, err
 	}
 
-	svc := services.NewGoogleAdsServiceClient(conn)
-	resp, err := svc.Search(ctx, req)
-	if err != nil {
-		return 0, fmt.Errorf("search: %w", err)
+	customerID := customerInfo.CustomerID
+	if customerID == "" {
+		customerID = customerInfo.ClientCustomerID
+	}
+	if customerID == "" {
+		return nil, fmt.Errorf("googleads: customer id required")
 	}
 
-	var totalMicros int64
-	for _, row := range resp.Results {
-		if row.GetMetrics() != nil {
-			totalMicros += row.GetMetrics().GetCostMicros()
+	if customerInfo.ManagerID != "" {
+		if md, ok := metadata.FromOutgoingContext(ctx); ok {
+			mdCopy := md.Copy()
+			mdCopy.Set("login-customer-id", customerInfo.ManagerID)
+			ctx = metadata.NewOutgoingContext(ctx, mdCopy)
+		} else {
+			ctx = metadata.NewOutgoingContext(ctx, metadata.Pairs("login-customer-id", customerInfo.ManagerID))
 		}
 	}
 
-	return float64(totalMicros) / 1e6, nil // micros → currency units
+	return &Client{
+		CustomerInfo: customerInfo,
+		grpcConn:     grpcConn,
+		ctx:          ctx,
+	}, nil
+}
+
+func (c *Client) Close() error {
+	return c.grpcConn.Close()
 }

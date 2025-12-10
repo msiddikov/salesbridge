@@ -208,14 +208,17 @@ type (
 	}
 
 	Invoice struct {
-		Details struct {
-			id          string
-			Total_price struct {
+		Invoice struct {
+			Id             string
+			Invoice_number string
+			Invoice_date   ZenotiTime
+			Total_price    struct {
 				Currency_id         uint
 				Net_price           float64
 				Tax                 float64
 				Rounding_adjustment float64
 				Total_price         float64
+				Sum_total           float64
 			}
 		} `json:"invoice"`
 		Guest struct {

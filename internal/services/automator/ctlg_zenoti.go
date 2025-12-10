@@ -28,6 +28,7 @@ var (
 			zenotiCollectionSales,
 			zenotiActionMergeAppointment,
 			zenotiActionMergeSales,
+			zenotiActionGetInvoice,
 			zenotiActionGetGuest,
 			zenotiActionFindGuest,
 			zenotiActionCreateGuest,
@@ -522,6 +523,45 @@ func zenotiCollectCollections(ctx context.Context, fields map[string]interface{}
 		total:   totalDays * estimatedDaily,
 		hasMore: true,
 	}, nil
+}
+
+// Invoices
+
+var zenotiActionGetInvoice = Node{
+	Id:          "zenoti.invoice.get",
+	Title:       "Get Zenoti Invoice",
+	Description: "Gets an invoice in Zenoti by invoice ID.",
+	ExecFunc:    zenotiActionGetInvoiceById,
+	Type:        NodeTypeAction,
+	Icon:        "ri:form",
+	Color:       ColorAction,
+	Ports: []NodePort{
+		successPort(zenotiInvoiceNodeFields),
+		errorPort,
+	},
+	Fields: []NodeField{
+		{Key: "invoiceId", Label: "Invoice ID", Type: "string"},
+	},
+}
+
+func zenotiActionGetInvoiceById(ctx context.Context, fields map[string]interface{}, l models.Location) map[string]map[string]interface{} {
+	invoiceId, ok := fields["invoiceId"].(string)
+	if !ok || invoiceId == "" {
+		return errorPayload(nil, "invoiceId is required and must be a string")
+	}
+
+	zenotiCli, err := zenotiv1.NewClient(l.Id, l.ZenotiCenterId, l.ZenotiApiObj.ApiKey)
+
+	if err != nil {
+		return errorPayload(err, "failed to create zenoti client")
+	}
+
+	invoice, err := zenotiCli.InvoicesGetDetails(invoiceId)
+	if err != nil {
+		return errorPayload(err, "failed to get invoice by ID")
+	}
+
+	return successPayload(mapZenotiInvoiceToNodePayload(invoice))
 }
 
 // Sales
@@ -1050,6 +1090,20 @@ func mapZenotiInvoiceClosedWebhookToNodePayload(data zenotiv1.WebhookDataPayload
 	res["guestLastName"] = data.Invoice.Guest.Last_Name
 	res["guestEmail"] = data.Invoice.Guest.Email
 	res["guestPhone"] = data.Invoice.Guest.Mobile_Phone
+
+	return res
+}
+
+func mapZenotiInvoiceToNodePayload(data zenotiv1.Invoice) map[string]interface{} {
+	res := make(map[string]interface{})
+	res["id"] = data.Invoice.Id
+	res["date"] = data.Invoice.Invoice_date.Time.Format("2006-01-02 15:04:05")
+	res["amount"] = toString(data.Invoice.Total_price.Sum_total)
+
+	res["guestId"] = data.Guest.Id
+	res["guestFirstName"] = data.Guest.First_name
+	res["guestLastName"] = data.Guest.Last_name
+	res["guestPhone"] = data.Guest.Mobile_phone
 
 	return res
 }
