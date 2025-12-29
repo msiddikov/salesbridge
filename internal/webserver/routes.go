@@ -53,6 +53,7 @@ func setRoutes(router *gin.Engine) {
 	// GHL Routes
 	ghl := router.Group("/ghl")
 	ghl.GET("/:locationId/pipelines", auth.Auth, svc_ghl.GetPipelines)
+	ghl.POST("/webhookv2", svc_ghl.WebhookAuthMiddle, svc_ghl.WebhookHandler)
 
 	// Settings routes
 	settings := router.Group("/settings")

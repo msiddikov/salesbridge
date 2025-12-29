@@ -2,7 +2,9 @@ package svc_googleads
 
 import (
 	"client-runaway-zenoti/internal/db/models"
+	"client-runaway-zenoti/packages/googleads"
 	"fmt"
+	"time"
 
 	lvn "github.com/Lavina-Tech-LLC/lavinagopackage/v2"
 	"github.com/gin-gonic/gin"
@@ -14,6 +16,7 @@ func GetLocationConversionActions(c *gin.Context) {
 	locID := c.Param("locationId")
 	if locID == "" {
 		lvn.GinErr(c, 400, fmt.Errorf("location id required"), "invalid location id")
+		return
 	}
 
 	cli, err := cliForLocation(locID, user.ProfileID)
@@ -24,4 +27,73 @@ func GetLocationConversionActions(c *gin.Context) {
 	lvn.GinErr(c, 400, err, "unable to list conversion actions")
 
 	c.Data(lvn.Res(200, actions, "success"))
+}
+
+// UploadConversionData uploads offline conversion data for the location's configured account.
+func UploadConversionData(c *gin.Context) {
+	user := c.MustGet("user").(models.User)
+	locID := c.Param("locationId")
+	if locID == "" {
+		lvn.GinErr(c, 400, fmt.Errorf("location id required"), "invalid location id")
+		return
+	}
+
+	var payload struct {
+		ConversionActionID string `json:"conversionActionId" binding:"required"`
+		Gclid              string `json:"gclid"`
+		Gbraid             string `json:"gbraid"`
+		Wbraid             string `json:"wbraid"`
+
+		ConversionValue float64   `json:"conversionValue"`
+		CurrencyCode    string    `json:"currencyCode"`
+		EventTime       time.Time `json:"eventTime"`
+		ValidateOnly    bool      `json:"validateOnly"`
+
+		UTMSource   string `json:"utmSource"`
+		UTMMedium   string `json:"utmMedium"`
+		UTMCampaign string `json:"utmCampaign"`
+		UTMTerm     string `json:"utmTerm"`
+		UTMContent  string `json:"utmContent"`
+
+		UTMCustomVariableResourceNames map[string]string `json:"utmCustomVariableResourceNames"`
+	}
+	err := c.ShouldBindJSON(&payload)
+	lvn.GinErr(c, 400, err, "invalid payload")
+	if err != nil {
+		return
+	}
+	if payload.Gclid == "" && payload.Gbraid == "" && payload.Wbraid == "" {
+		lvn.GinErr(c, 400, fmt.Errorf("gclid, gbraid, or wbraid required"), "invalid payload")
+		return
+	}
+
+	cli, err := cliForLocation(locID, user.ProfileID)
+	lvn.GinErr(c, 400, err, "unable to create google ads client")
+	if err != nil {
+		return
+	}
+	defer cli.Close()
+
+	err = cli.SendConversion(googleads.ConversionRequest{
+		ConversionActionID:             payload.ConversionActionID,
+		Gclid:                          payload.Gclid,
+		Gbraid:                         payload.Gbraid,
+		Wbraid:                         payload.Wbraid,
+		ConversionValue:                payload.ConversionValue,
+		CurrencyCode:                   payload.CurrencyCode,
+		EventTime:                      payload.EventTime,
+		ValidateOnly:                   payload.ValidateOnly,
+		UTMSource:                      payload.UTMSource,
+		UTMMedium:                      payload.UTMMedium,
+		UTMCampaign:                    payload.UTMCampaign,
+		UTMTerm:                        payload.UTMTerm,
+		UTMContent:                     payload.UTMContent,
+		UTMCustomVariableResourceNames: payload.UTMCustomVariableResourceNames,
+	})
+	lvn.GinErr(c, 400, err, "unable to upload conversion")
+	if err != nil {
+		return
+	}
+
+	c.Data(lvn.Res(200, gin.H{"uploaded": true}, "success"))
 }
