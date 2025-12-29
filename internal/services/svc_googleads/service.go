@@ -12,7 +12,7 @@ import (
 )
 
 var (
-	svc *googleads.Service
+	Svc *googleads.Service
 )
 
 func init() {
@@ -24,7 +24,7 @@ func init() {
 		updateTokens,
 		getConnection,
 	)
-	svc = &svcObj
+	Svc = &svcObj
 }
 
 func saveConnection(conn googleads.Connection) (googleads.Connection, error) {
@@ -86,7 +86,7 @@ func fromModel(m models.GoogleAdsConnection) googleads.Connection {
 	}
 }
 
-func cliForLocation(locationId string, profileId uint) (*googleads.Client, error) {
+func CliForLocation(locationId string, profileId uint) (*googleads.Client, error) {
 	setting := models.GoogleAdsLocationSetting{}
 	err := db.DB.Where("location_id = ? AND profile_id = ?", locationId, profileId).First(&setting).Error
 	if err != nil {
@@ -96,7 +96,7 @@ func cliForLocation(locationId string, profileId uint) (*googleads.Client, error
 		return nil, fmt.Errorf("unable to fetch setting: %w", err)
 	}
 
-	return svc.NewClient(setting.ConnectionID, googleads.CustomerInfo{
+	return Svc.NewClient(setting.ConnectionID, googleads.CustomerInfo{
 		CustomerID:       setting.CustomerID,
 		ClientCustomerID: setting.ClientCustomerID,
 		ManagerID:        setting.ManagerID,

@@ -19,7 +19,7 @@ func GetAuthURL(c *gin.Context) {
 	user := c.MustGet("user").(models.User)
 
 	state := fmt.Sprintf("profile:%d", user.ProfileID)
-	url, err := svc.AuthURL(state)
+	url, err := Svc.AuthURL(state)
 	lvn.GinErr(c, 400, err, "unable to build oauth url")
 	if err != nil {
 		return
@@ -77,7 +77,7 @@ func OAuthCallback(c *gin.Context) {
 		return
 	}
 
-	conn, err := svc.ExchangeCode(c, code, googleads.Connection{
+	conn, err := Svc.ExchangeCode(c, code, googleads.Connection{
 		ProfileID: profileID,
 	})
 	if err != nil {

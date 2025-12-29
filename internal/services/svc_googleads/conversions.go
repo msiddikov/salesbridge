@@ -19,7 +19,7 @@ func GetLocationConversionActions(c *gin.Context) {
 		return
 	}
 
-	cli, err := cliForLocation(locID, user.ProfileID)
+	cli, err := CliForLocation(locID, user.ProfileID)
 	lvn.GinErr(c, 400, err, "unable to create google ads client")
 	defer cli.Close()
 
@@ -49,12 +49,6 @@ func UploadConversionData(c *gin.Context) {
 		EventTime       time.Time `json:"eventTime"`
 		ValidateOnly    bool      `json:"validateOnly"`
 
-		UTMSource   string `json:"utmSource"`
-		UTMMedium   string `json:"utmMedium"`
-		UTMCampaign string `json:"utmCampaign"`
-		UTMTerm     string `json:"utmTerm"`
-		UTMContent  string `json:"utmContent"`
-
 		UTMCustomVariableResourceNames map[string]string `json:"utmCustomVariableResourceNames"`
 	}
 	err := c.ShouldBindJSON(&payload)
@@ -67,7 +61,7 @@ func UploadConversionData(c *gin.Context) {
 		return
 	}
 
-	cli, err := cliForLocation(locID, user.ProfileID)
+	cli, err := CliForLocation(locID, user.ProfileID)
 	lvn.GinErr(c, 400, err, "unable to create google ads client")
 	if err != nil {
 		return
@@ -75,25 +69,19 @@ func UploadConversionData(c *gin.Context) {
 	defer cli.Close()
 
 	err = cli.SendConversion(googleads.ConversionRequest{
-		ConversionActionID:             payload.ConversionActionID,
-		Gclid:                          payload.Gclid,
-		Gbraid:                         payload.Gbraid,
-		Wbraid:                         payload.Wbraid,
-		ConversionValue:                payload.ConversionValue,
-		CurrencyCode:                   payload.CurrencyCode,
-		EventTime:                      payload.EventTime,
-		ValidateOnly:                   payload.ValidateOnly,
-		UTMSource:                      payload.UTMSource,
-		UTMMedium:                      payload.UTMMedium,
-		UTMCampaign:                    payload.UTMCampaign,
-		UTMTerm:                        payload.UTMTerm,
-		UTMContent:                     payload.UTMContent,
+		ConversionActionID: payload.ConversionActionID,
+		Gclid:              payload.Gclid,
+		Gbraid:             payload.Gbraid,
+		Wbraid:             payload.Wbraid,
+		ConversionValue:    payload.ConversionValue,
+		CurrencyCode:       payload.CurrencyCode,
+		EventTime:          payload.EventTime,
+		ValidateOnly:       payload.ValidateOnly,
+
 		UTMCustomVariableResourceNames: payload.UTMCustomVariableResourceNames,
 	})
 	lvn.GinErr(c, 400, err, "unable to upload conversion")
 	if err != nil {
 		return
 	}
-
-	c.Data(lvn.Res(200, gin.H{"uploaded": true}, "success"))
 }

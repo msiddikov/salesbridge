@@ -14,6 +14,7 @@ type ConversionRequest struct {
 	Gclid              string
 	Gbraid             string
 	Wbraid             string
+	OrderId            string
 
 	ConversionValue float64
 	CurrencyCode    string
@@ -80,6 +81,7 @@ func (c *Client) SendConversion(req ConversionRequest) error {
 		Gclid:              &req.Gclid,
 		Gbraid:             req.Gbraid,
 		Wbraid:             req.Wbraid,
+		OrderId:            &req.OrderId,
 	}
 
 	svc := services.NewConversionUploadServiceClient(c.grpcConn)

@@ -34,7 +34,7 @@ func ListAccountHierarchy(c *gin.Context) {
 	conn := fromModel(connModel)
 
 	ctx := context.Background()
-	ctx, _, err = svc.WithHeaders(ctx, conn)
+	ctx, _, err = Svc.WithHeaders(ctx, conn)
 	lvn.GinErr(c, 400, err, "unable to refresh tokens")
 	if err != nil {
 		return

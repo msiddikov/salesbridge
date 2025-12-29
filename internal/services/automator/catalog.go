@@ -12,6 +12,7 @@ var (
 			ghlCategory,
 			zenotiCategory,
 			attributionCategory,
+			gaCategory,
 			othersCategory,
 		},
 	}
