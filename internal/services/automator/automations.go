@@ -67,9 +67,15 @@ func UpdateAutomation(c *gin.Context) {
 		}, "automation validation failed"))
 		return
 	}
-
+	automation.Name = payload.Name
+	automation.Description = payload.Description
+	automation.LocationId = payload.LocationId
+	automation.State = payload.State
+	automation.UpdaterId = payload.UpdaterId
 	automation.Graph = payload.Graph
-	err = db.DB.Model(&automation).Updates(payload).Error
+
+	err = db.DB.Model(&automation).Updates(&automation).Error
+
 	lvn.GinErr(c, 400, err, "error while updating automation")
 
 	c.Data(lvn.Res(200, automation, ""))
