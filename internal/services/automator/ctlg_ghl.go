@@ -349,6 +349,7 @@ var (
 		{Key: "contactLastName", Type: "string"},
 		{Key: "contactEmail", Type: "string"},
 		{Key: "contactPhone", Type: "string"},
+		{Key: "gclid", Type: "string"},
 	}
 
 	ghlOpportunityUpdateFields = []NodeField{
@@ -865,6 +866,10 @@ func mapGhlOpportunityToNodePayload(opportunity runwayv2.Opportunity) map[string
 	payload["contactLastName"] = opportunity.Contact.LastName
 	payload["contactEmail"] = opportunity.Contact.Email
 	payload["contactPhone"] = opportunity.Contact.Phone
+
+	for _, attr := range opportunity.Attributions {
+		payload["gclid"] = attr.UtmGclid
+	}
 
 	return payload
 }

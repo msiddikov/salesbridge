@@ -3,6 +3,7 @@ package googleads
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"google.golang.org/grpc"
@@ -38,6 +39,18 @@ type (
 	}
 )
 
+func normalizeCustomerID(id string) string {
+	if id == "" {
+		return ""
+	}
+	return strings.Map(func(r rune) rune {
+		if r >= '0' && r <= '9' {
+			return r
+		}
+		return -1
+	}, id)
+}
+
 func NewService(
 	ClientId, ClientSecret, RedirectURL string,
 	saveConnection func(Connection) (Connection, error),
@@ -59,6 +72,10 @@ func NewService(
 }
 
 func (s *Service) NewClient(connId uint, customerInfo CustomerInfo) (*Client, error) {
+	customerInfo.CustomerID = normalizeCustomerID(customerInfo.CustomerID)
+	customerInfo.ClientCustomerID = normalizeCustomerID(customerInfo.ClientCustomerID)
+	customerInfo.ManagerID = normalizeCustomerID(customerInfo.ManagerID)
+
 	conn, err := s.GetConnectionByID(connId)
 	if err != nil {
 		return nil, err
@@ -82,6 +99,7 @@ func (s *Service) NewClient(connId uint, customerInfo CustomerInfo) (*Client, er
 	if customerID == "" {
 		return nil, fmt.Errorf("googleads: customer id required")
 	}
+	customerInfo.CustomerID = customerID
 
 	if customerInfo.ManagerID != "" {
 		if md, ok := metadata.FromOutgoingContext(ctx); ok {

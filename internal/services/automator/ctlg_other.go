@@ -56,7 +56,7 @@ var (
 		Fields: []NodeField{
 			{Key: "left", Type: "string", Required: true},
 			{Key: "operator", Type: "string", Required: true, SelectOptions: []string{"equals", "not_equals", "greater_than", "less_than", "contains"}},
-			{Key: "right", Type: "string", Required: true},
+			{Key: "right", Type: "string", Required: false},
 		},
 	}
 

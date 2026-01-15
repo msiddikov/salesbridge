@@ -43,6 +43,7 @@ func setRoutes(router *gin.Engine) {
 	auto.GET("/runs/export", auth.Auth, automator.ExportAutomationRuns)
 	auto.GET("/run-details/:runId", auth.Auth, automator.GetAutomationRunDetails)
 	auto.POST("/run/:runId/restart", auth.Auth, automator.StartFromAutomationRun)
+	auto.POST("/trigger/:automationId", auth.Auth, automator.StartTriggerForAutomation)
 
 	// Batch runs
 	auto.POST("/batch-run", auth.Auth, automator.StartBatchRun)

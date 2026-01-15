@@ -135,10 +135,10 @@ func TestUpdateAllTokens(t *testing.T) {
 }
 
 func TestGetOppoertunities(t *testing.T) {
-	startDateTime, _ := time.Parse("2006-01-02 15:04:05", "2025-08-01 00:00:00")
-	endDateTime, _ := time.Parse("2006-01-02 15:04:05", "2025-08-05 00:00:00")
+	startDateTime, _ := time.Parse("2006-01-02 15:04:05", "2025-08-05 00:00:00")
+	endDateTime, _ := time.Parse("2006-01-02 15:04:05", "2025-08-15 00:00:00")
 
-	locName := "Young Medical Spa - Lansdale"
+	locName := "Young Medical Spa"
 	loc := models.Location{}
 	db.DB.Where("name = ?", locName).First(&loc)
 

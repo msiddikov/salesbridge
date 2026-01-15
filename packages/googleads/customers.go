@@ -256,6 +256,18 @@ LIMIT 1
 }
 
 func fetchDirectClients(ctx context.Context, conn *grpc.ClientConn, customerID string) ([]CustomerSummary, error) {
+	if customerID == "" {
+		return nil, fmt.Errorf("googleads: customer id required")
+	}
+	// Ensure the manager id is set so customer_client returns direct clients.
+	if md, ok := metadata.FromOutgoingContext(ctx); ok {
+		mdCopy := md.Copy()
+		mdCopy.Set("login-customer-id", customerID)
+		ctx = metadata.NewOutgoingContext(ctx, mdCopy)
+	} else {
+		ctx = metadata.NewOutgoingContext(ctx, metadata.Pairs("login-customer-id", customerID))
+	}
+
 	query := `
 SELECT
   customer_client.client_customer,

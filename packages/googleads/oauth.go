@@ -192,6 +192,13 @@ func (s Service) WithHeaders(ctx context.Context, conn Connection) (context.Cont
 	mdPairs := []string{
 		"authorization", "Bearer " + updatedConn.AccessToken,
 	}
+	devToken := ""
+	if devToken == "" {
+		devToken = developerToken
+	}
+	if devToken != "" {
+		mdPairs = append(mdPairs, "developer-token", devToken)
+	}
 
 	return metadata.NewOutgoingContext(ctx, metadata.Pairs(mdPairs...)), updatedConn, nil
 }

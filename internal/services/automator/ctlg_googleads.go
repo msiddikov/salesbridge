@@ -34,10 +34,10 @@ var gaActionUploadConversionData = Node{
 		errorPort,
 	},
 	Fields: []NodeField{
-		{Key: "GoogleAdsActionId", Type: "string"},
+		{Key: "googleAdsActionId", Type: "string"},
 		{Key: "gclid", Type: "string"},
 		{Key: "eventTime", Type: "string"},
-		{Key: "value", Type: "number"},
+		{Key: "value", Type: "string"},
 		{Key: "orderId", Type: "string"},
 	},
 }
@@ -58,8 +58,13 @@ func gaUploadConversionData(ctx context.Context, fields map[string]interface{}, 
 		return errorPayload(err, "invalid value format")
 	}
 
+	actionId, ok := fields["googleAdsActionId"].(string)
+	if !ok || actionId == "" {
+		return errorPayload(err, "googleAdsActionId is required")
+	}
+
 	req := googleads.ConversionRequest{
-		ConversionActionID: fields["GoogleAdsActionId"].(string),
+		ConversionActionID: actionId,
 		Gclid:              fields["gclid"].(string),
 		EventTime:          eventTime,
 		ConversionValue:    value,

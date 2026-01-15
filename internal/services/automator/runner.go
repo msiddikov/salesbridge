@@ -95,50 +95,58 @@ func StartAutomationsForTrigger(ctx context.Context, input TriggerInput) error {
 	go func() {
 
 		for _, automation := range automations {
-			if len(automation.Graph.Entry) == 0 || len(automation.Graph.Nodes) == 0 {
-				continue
+			err := StartAutomationForOneTrigger(ctx, automation, input)
+			if err != nil {
+				log.Printf("automator: start automation for trigger: %s", err.Error())
 			}
-
-			runtime := newAutomationRuntime(automation)
-			runtime.runStatus = &models.AutomationRun{
-				ID:             uuid.New().String(),
-				AutomationID:   automation.ID,
-				LocationID:     automation.LocationId,
-				Status:         models.RunRunning,
-				TriggerType:    input.TriggerType,
-				TriggerPort:    input.Port,
-				TriggerPayload: input.Payload,
-				StartedAt:      time.Now(),
-				RunNodes:       []models.AutomationRunNode{},
-			}
-
-			entryNodes := runtime.entryNodesForType(input.TriggerType)
-			if len(entryNodes) == 0 {
-				continue
-			}
-
-			db.DB.Save(&runtime.runStatus) // save runtime status only if the automation has entry nodes
-
-			for _, entry := range entryNodes {
-				payloads := make(map[string]map[string]interface{})
-				payloads[input.Port] = clonePayload(input.Payload)
-				if err := runtime.startFromEntry(ctx, entry, payloads); err != nil {
-					runtime.runStatus.Status = models.RunWithErrors
-					if runtime.runStatus.ErrorMessage == "" {
-						runtime.runStatus.ErrorMessage = err.Error()
-					}
-				}
-			}
-
-			finishedAt := time.Now()
-			runtime.runStatus.CompletedAt = &finishedAt
-			if runtime.runStatus.RunNodesWithErrors == 0 && runtime.runStatus.Status != models.RunWithErrors {
-				runtime.runStatus.Status = models.RunSuccess
-			}
-			db.DB.Save(&runtime.runStatus)
 		}
 	}()
 
+	return nil
+}
+
+func StartAutomationForOneTrigger(ctx context.Context, automation models.Automation, input TriggerInput) error {
+	if len(automation.Graph.Entry) == 0 || len(automation.Graph.Nodes) == 0 {
+		return nil
+	}
+
+	runtime := newAutomationRuntime(automation)
+	runtime.runStatus = &models.AutomationRun{
+		ID:             uuid.New().String(),
+		AutomationID:   automation.ID,
+		LocationID:     automation.LocationId,
+		Status:         models.RunRunning,
+		TriggerType:    input.TriggerType,
+		TriggerPort:    input.Port,
+		TriggerPayload: input.Payload,
+		StartedAt:      time.Now(),
+		RunNodes:       []models.AutomationRunNode{},
+	}
+
+	entryNodes := runtime.entryNodesForType(input.TriggerType)
+	if len(entryNodes) == 0 {
+		return nil
+	}
+
+	db.DB.Save(&runtime.runStatus) // save runtime status only if the automation has entry nodes
+
+	for _, entry := range entryNodes {
+		payloads := make(map[string]map[string]interface{})
+		payloads[input.Port] = clonePayload(input.Payload)
+		if err := runtime.startFromEntry(ctx, entry, payloads); err != nil {
+			runtime.runStatus.Status = models.RunWithErrors
+			if runtime.runStatus.ErrorMessage == "" {
+				runtime.runStatus.ErrorMessage = err.Error()
+			}
+		}
+	}
+
+	finishedAt := time.Now()
+	runtime.runStatus.CompletedAt = &finishedAt
+	if runtime.runStatus.RunNodesWithErrors == 0 && runtime.runStatus.Status != models.RunWithErrors {
+		runtime.runStatus.Status = models.RunSuccess
+	}
+	db.DB.Save(&runtime.runStatus)
 	return nil
 }
 

@@ -310,6 +310,27 @@ func StartFromAutomationRun(c *gin.Context) {
 	c.Data(lvn.Res(200, "Automation started", ""))
 }
 
+func StartTriggerForAutomation(c *gin.Context) {
+	automationId := c.Param("automationId")
+
+	var automation models.Automation
+	err := db.DB.First(&automation, "id = ?", automationId).Preload("Location").Error
+	lvn.GinErr(c, 400, err, "Could not retrieve automation")
+
+	var input TriggerInput
+	if err := c.ShouldBindJSON(&input); err != nil {
+		lvn.GinErr(c, 400, err, "Invalid input")
+		return
+	}
+
+	input.LocationID = automation.LocationId
+
+	err = StartAutomationForOneTrigger(context.Background(), automation, input)
+	lvn.GinErr(c, 500, err, "Error starting automation from trigger")
+
+	c.Data(lvn.Res(200, "Automation started", ""))
+}
+
 func parseQueryInt(c *gin.Context, key string, fallback int) int {
 	val := c.Query(key)
 	if val == "" {

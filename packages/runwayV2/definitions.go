@@ -90,6 +90,13 @@ type (
 		PipelineId      string
 		CreatedAt       time.Time
 		AssignedTo      string
+		Attributions    []OpportunityAttribution
+	}
+
+	OpportunityAttribution struct {
+		UtmGclid         string `json:"utmGclid,omitempty"`
+		UtmSessionSource string `json:"utmSessionSource,omitempty"`
+		Fbp              string `json:"fbp,omitempty"`
 	}
 
 	OpportunityChangeParams struct {
