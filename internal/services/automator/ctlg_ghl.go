@@ -1,6 +1,7 @@
 package automator
 
 import (
+	"client-runaway-zenoti/internal/db"
 	"client-runaway-zenoti/internal/db/models"
 	"client-runaway-zenoti/internal/services/svc_ghl"
 	runwayv2 "client-runaway-zenoti/packages/runwayV2"
@@ -21,6 +22,7 @@ var (
 		Color: "#4C6FFF",
 		Nodes: []Node{
 			ghlTriggerOpportunityCreated,
+			ghlTriggerAppointmentUpdated,
 
 			ghlCollectionOpportunities,
 
@@ -49,6 +51,14 @@ var (
 	//
 	///////////////////////////////////////////////////
 
+	ghlAppointmentStatusFilters = []string{
+		"confirmed",
+		"cancelled",
+		"pending",
+		"no_show",
+		"completed",
+	}
+
 	//////////////////////////////////////////////////
 	//                  Triggers
 	///////////////////////////////////////////////////
@@ -63,6 +73,23 @@ var (
 				Name:    "out",
 				Payload: ghlOpportunityNodeFields,
 			},
+		},
+	}
+
+	ghlTriggerAppointmentUpdated = Node{
+		Id:          "ghl.appointment.updated",
+		Title:       "Appointment Updated",
+		Description: "Triggers when an appointment is updated in GoHighLevel.",
+		Type:        NodeTypeTrigger,
+		Icon:        "ri:calendar-check-line",
+		Ports: []NodePort{
+			{
+				Name:    "out",
+				Payload: ghlAppointmentNodeFields,
+			},
+		},
+		Fields: []NodeField{
+			{Key: "status", Label: "Appointment Status", Type: "string", Required: false, SelectOptions: ghlAppointmentStatusFilters},
 		},
 	}
 
@@ -407,6 +434,7 @@ var (
 		{Key: "phone", Label: "Phone", Type: "string"},
 		{Key: "firstName", Label: "First Name", Type: "string"},
 		{Key: "lastName", Label: "Last Name", Type: "string"},
+		{Key: "dateOfBirth", Label: "Date of Birth", Type: "string"},
 		{Key: "locationId", Label: "Location ID", Type: "string"},
 
 		{Key: "address", Label: "Address", Type: "string"},
@@ -421,6 +449,23 @@ var (
 		{Key: "tags", Label: "Tags (comma separated)", Type: "string"},
 
 		{Key: "source", Label: "Source", Type: "string"},
+	}
+
+	ghlAppointmentNodeFields = []NodeField{
+		{Key: "id", Type: "string"},
+		{Key: "address", Type: "string"},
+		{Key: "title", Type: "string"},
+		{Key: "calendarId", Type: "string"},
+		{Key: "contactId", Type: "string"},
+		{Key: "groupId", Type: "string"},
+		{Key: "appointmentStatus", Type: "string"},
+		{Key: "assignedUserId", Type: "string"},
+		{Key: "notes", Type: "string"},
+		{Key: "source", Type: "string"},
+		{Key: "startTime", Type: "string"},
+		{Key: "endTime", Type: "string"},
+		{Key: "dateAdded", Type: "string"},
+		{Key: "dateUpdated", Type: "string"},
 	}
 
 	svc = runwayv2.Service{}
@@ -506,7 +551,7 @@ func ghlContactCallTranscriptions(ctx context.Context, fields map[string]interfa
 
 	limit := parseLimit(fields["limit"])
 	if limit <= 0 {
-		limit = 5
+		limit = 1
 	}
 
 	cli, err := svc.NewClientFromId(l.Id)
@@ -517,8 +562,7 @@ func ghlContactCallTranscriptions(ctx context.Context, fields map[string]interfa
 	res, err := cli.MessagesExport(runwayv2.MessagesFilter{
 		Channel:   "Call",
 		ContactId: contactID,
-		Limit:     limit,
-		SortBy:    "dateAdded",
+		SortBy:    "createdAt",
 		SortOrder: "desc",
 	})
 	if err != nil {
@@ -527,6 +571,10 @@ func ghlContactCallTranscriptions(ctx context.Context, fields map[string]interfa
 
 	if len(res.Messages) == 0 {
 		return successPayload(map[string]interface{}{"transcription": ""})
+	}
+
+	if len(res.Messages) > limit {
+		res.Messages = res.Messages[:limit]
 	}
 
 	var builder strings.Builder
@@ -665,6 +713,37 @@ func GhlTriggerOpportunityCreated(ctx context.Context, opportunity runwayv2.Oppo
 	err := StartAutomationsForTrigger(ctx, triggerInput)
 
 	return err
+}
+
+func GhlTriggerAppointmentUpdated(ctx context.Context, bodyBytes []byte) error {
+
+	body := struct {
+		LocationId  string               `json:"locationId"`
+		Appointment runwayv2.Appointment `json:"appointment"`
+	}{}
+	err := json.Unmarshal(bodyBytes, &body)
+	if err != nil {
+		return err
+	}
+
+	l := models.Location{Id: body.LocationId}
+	err = db.DB.Where("id = ?", body.LocationId).First(&l).Error
+	if err != nil {
+		return err
+	}
+
+	triggerInput := TriggerInput{
+		LocationID:  l.Id,
+		TriggerType: "ghl.appointment.updated",
+		Port:        "out",
+		Payload:     map[string]interface{}{},
+		Filters: map[string]interface{}{
+			"status": body.Appointment.AppointmentStatus,
+		},
+	}
+	triggerInput.Payload = mapGhlAppointmentToPayload(body.Appointment)
+
+	return StartAutomationsForTrigger(ctx, triggerInput)
 }
 
 func ghlCollectionGetOpportunities(ctx context.Context, fields map[string]interface{}, l models.Location) (collectionResult, error) {
@@ -1096,6 +1175,7 @@ func mapGhlContactToNodePayload(contact runwayv2.Contact) map[string]interface{}
 	payload["phone"] = contact.Phone
 	payload["firstName"] = contact.FirstName
 	payload["lastName"] = contact.LastName
+	payload["dateOfBirth"] = contact.DateOfBirth
 	payload["locationId"] = contact.LocationId
 
 	payload["address"] = contact.Address1
@@ -1116,6 +1196,25 @@ func mapGhlContactToNodePayload(contact runwayv2.Contact) map[string]interface{}
 	payload["source"] = contact.Source
 
 	return payload
+}
+
+func mapGhlAppointmentToPayload(appointment runwayv2.Appointment) map[string]interface{} {
+	return map[string]interface{}{
+		"id":                appointment.Id,
+		"address":           appointment.Address,
+		"title":             appointment.Title,
+		"calendarId":        appointment.CalendarId,
+		"contactId":         appointment.ContactId,
+		"groupId":           appointment.GroupId,
+		"appointmentStatus": appointment.AppointmentStatus,
+		"assignedUserId":    appointment.AssignedUserId,
+		"notes":             appointment.Notes,
+		"source":            appointment.Source,
+		"startTime":         appointment.StartTime,
+		"endTime":           appointment.EndTime,
+		"dateAdded":         appointment.DateAdded,
+		"dateUpdated":       appointment.DateUpdated,
+	}
 }
 
 func mapNodeFieldsToGhlContact(fields map[string]interface{}) runwayv2.Contact {

@@ -7,13 +7,14 @@ import (
 
 type (
 	Contact struct {
-		Id         string `json:"id,omitempty"`
-		Email      string `json:"email,omitempty"`
-		Phone      string `json:"phone,omitempty"`
-		FirstName  string `json:"firstName,omitempty"`
-		LastName   string `json:"lastName,omitempty"`
-		Gender     string `json:"gender,omitempty"`
-		LocationId string `json:"locationId,omitempty"`
+		Id          string `json:"id,omitempty"`
+		Email       string `json:"email,omitempty"`
+		Phone       string `json:"phone,omitempty"`
+		FirstName   string `json:"firstName,omitempty"`
+		LastName    string `json:"lastName,omitempty"`
+		DateOfBirth string `json:"dateOfBirth,omitempty"`
+		Gender      string `json:"gender,omitempty"`
+		LocationId  string `json:"locationId,omitempty"`
 
 		Address1    string             `json:"address1,omitempty"`
 		City        string             `json:"city,omitempty"`
@@ -230,6 +231,23 @@ type (
 		ConversationProviderId string   `json:"conversationProviderId,omitempty"`
 		From                   string   `json:"from,omitempty"`
 		To                     string   `json:"to,omitempty"`
+	}
+
+	Appointment struct {
+		Id                string `json:"id"`
+		Address           string `json:"address"`
+		Title             string `json:"title"`
+		CalendarId        string `json:"calendarId"`
+		ContactId         string `json:"contactId"`
+		GroupId           string `json:"groupId"`
+		AppointmentStatus string `json:"appointmentStatus"`
+		AssignedUserId    string `json:"assignedUserId"`
+		Notes             string `json:"notes"`
+		Source            string `json:"source"`
+		StartTime         string `json:"startTime"`
+		EndTime           string `json:"endTime"`
+		DateAdded         string `json:"dateAdded"`
+		DateUpdated       string `json:"dateUpdated"`
 	}
 )
 

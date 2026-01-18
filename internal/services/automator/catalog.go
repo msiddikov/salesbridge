@@ -10,6 +10,7 @@ var (
 		Meta: templateMeta,
 		Categories: []Category{
 			aiCategory,
+			cerboCategory,
 			ghlCategory,
 			zenotiCategory,
 			attributionCategory,

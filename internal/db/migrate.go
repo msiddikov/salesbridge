@@ -104,6 +104,13 @@ func Migrate() {
 		panic(err)
 	}
 
+	// Integrations
+	err = DB.AutoMigrate(&models.CerboApi{},
+		&models.ZenotiApi{})
+	if err != nil {
+		panic(err)
+	}
+
 	defContact := models.Contact{
 		LocationId:    "0",
 		ContactId:     "0",

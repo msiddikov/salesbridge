@@ -1,0 +1,106 @@
+{
+  "info": {
+    "name": "Cerbo APIs",
+    "description": "CRUD routes for Cerbo API connections.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080"
+    },
+    {
+      "key": "email",
+      "value": "user@example.com"
+    },
+    {
+      "key": "password",
+      "value": "password"
+    },
+    {
+      "key": "cerboApiId",
+      "value": "1"
+    }
+  ],
+  "auth": {
+    "type": "basic",
+    "basic": [
+      {
+        "key": "username",
+        "value": "{{email}}"
+      },
+      {
+        "key": "password",
+        "value": "{{password}}"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "List Cerbo APIs",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/settings/cerbo/apis",
+          "host": ["{{baseUrl}}"],
+          "path": ["settings", "cerbo", "apis"]
+        }
+      }
+    },
+    {
+      "name": "Create Cerbo API",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"apiName\": \"Main Cerbo\",\n  \"subdomain\": \"exampleclinic\",\n  \"username\": \"pk_example\",\n  \"apiKey\": \"sk_example\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/settings/cerbo/apis",
+          "host": ["{{baseUrl}}"],
+          "path": ["settings", "cerbo", "apis"]
+        }
+      }
+    },
+    {
+      "name": "Update Cerbo API",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"apiName\": \"Main Cerbo Updated\",\n  \"subdomain\": \"exampleclinic\",\n  \"username\": \"pk_example\",\n  \"apiKey\": \"sk_example_updated\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/settings/cerbo/apis/{{cerboApiId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["settings", "cerbo", "apis", "{{cerboApiId}}"]
+        }
+      }
+    },
+    {
+      "name": "Delete Cerbo API",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/settings/cerbo/apis/{{cerboApiId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["settings", "cerbo", "apis", "{{cerboApiId}}"]
+        }
+      }
+    }
+  ]
+}

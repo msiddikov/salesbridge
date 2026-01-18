@@ -2,6 +2,8 @@ package webServer
 
 import (
 	"client-runaway-zenoti/internal/runway"
+	"client-runaway-zenoti/internal/services/automator"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -32,13 +34,21 @@ func webhook(c *gin.Context) {
 
 	common := commonFields{}
 	err = json.Unmarshal(bodyBytes, &common)
+	lvn.GinErr(c, 500, err, "Error while parsing webhook data")
 
 	switch common.Type {
 	case "OpportunityStageUpdate":
-		runway.HandleOpportunityStageUpdate(bodyBytes)
+		err = runway.HandleOpportunityStageUpdate(bodyBytes)
+		lvn.GinErr(c, 500, err, "Error while handling webhook")
 	case "AppointmentCreate":
-		runway.HandleAppointmentCreate(bodyBytes)
+		err = runway.HandleAppointmentCreate(bodyBytes)
+		lvn.GinErr(c, 500, err, "Error while handling webhook")
+	case "AppointmentUpdate":
+		err = automator.GhlTriggerAppointmentUpdated(context.Background(), bodyBytes)
+		lvn.GinErr(c, 500, err, "Error while handling webhook")
 	}
+
+	c.Data(lvn.Res(200, nil, "Success"))
 }
 
 func appointmentWebhook(c *gin.Context) {

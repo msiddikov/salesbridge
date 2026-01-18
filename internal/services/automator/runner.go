@@ -31,6 +31,7 @@ type (
 		TriggerType string
 		Port        string
 		Payload     map[string]interface{}
+		Filters     map[string]interface{}
 	}
 
 	queuedNode struct {
@@ -123,7 +124,7 @@ func StartAutomationForOneTrigger(ctx context.Context, automation models.Automat
 		RunNodes:       []models.AutomationRunNode{},
 	}
 
-	entryNodes := runtime.entryNodesForType(input.TriggerType)
+	entryNodes := runtime.entryNodesForTypeWithFilter(input)
 	if len(entryNodes) == 0 {
 		return nil
 	}
@@ -371,7 +372,7 @@ func newAutomationRuntime(auto models.Automation) *automationRuntime {
 	return rt
 }
 
-func (rt *automationRuntime) entryNodesForType(triggerType string) []models.APINode {
+func (rt *automationRuntime) entryNodesForTypeWithFilter(input TriggerInput) []models.APINode {
 	var entries []models.APINode
 	for _, entryID := range rt.automation.Graph.Entry {
 		node, ok := rt.nodes[entryID]
@@ -379,9 +380,29 @@ func (rt *automationRuntime) entryNodesForType(triggerType string) []models.APIN
 			log.Printf("automator: automation %s references unknown entry node %s", rt.automation.ID, entryID)
 			continue
 		}
-		if node.Type != triggerType {
+		// Check trigger type
+		if node.Type != input.TriggerType {
 			continue
 		}
+
+		// Check filters
+		matchesFilters := true
+		for key, val := range input.Filters {
+			nodeVal, ok := node.Config[key]
+			if !ok {
+				continue
+			}
+			strNodeVal := fmt.Sprintf("%v", nodeVal)
+			strVal := fmt.Sprintf("%v", val)
+			if strNodeVal != "" && strNodeVal != strVal {
+				matchesFilters = false
+				break
+			}
+		}
+		if !matchesFilters {
+			continue
+		}
+
 		entries = append(entries, node)
 	}
 	return entries

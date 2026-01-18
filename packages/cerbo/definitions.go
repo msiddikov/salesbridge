@@ -62,6 +62,43 @@ type (
 		Email     string `json:"email"`
 	}
 
+	PatientSearchParams struct {
+		FirstName  string `json:"first_name,omitempty"`
+		LastName   string `json:"last_name,omitempty"`
+		Email      string `json:"email,omitempty"`
+		Phone      string `json:"phone,omitempty"`
+		Dob        string `json:"dob,omitempty"`
+		ProviderId string `json:"provider_id,omitempty"`
+		Tag        string `json:"tag,omitempty"`
+		Username   string `json:"username,omitempty"`
+		Limit      int    `json:"limit,omitempty"`
+		Offset     int    `json:"offset,omitempty"`
+	}
+
+	EncounterType struct {
+		EncounterType string `json:"encounter_type,omitempty"`
+		Name          string `json:"name,omitempty"`
+		Description   string `json:"description,omitempty"`
+	}
+
+	Encounter struct {
+		Id              string `json:"id,omitempty"`
+		PatientId       string `json:"patient_id,omitempty"`
+		EncounterTypeId string `json:"encounter_type_id,omitempty"`
+		EncounterType   string `json:"encounter_type,omitempty"`
+		EncounterDate   string `json:"encounter_date,omitempty"`
+		ProviderId      string `json:"provider_id,omitempty"`
+		Status          string `json:"status,omitempty"`
+	}
+
+	EncounterCreateRequest struct {
+		PatientId     string `json:"pt_id,omitempty"`
+		DateOfService string `json:"date_of_service,omitempty"`
+		Title         string `json:"title,omitempty"`
+		Content       string `json:"content,omitempty"`
+		EncounterType string `json:"encounter_type,omitempty"`
+	}
+
 	CerboTime struct {
 		Time time.Time `json:"time,omitempty"`
 	}

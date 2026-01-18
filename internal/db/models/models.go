@@ -99,6 +99,10 @@ type (
 		ZenotiCenterName string
 		ZenotiApiObjId   uint
 		ZenotiApiObj     ZenotiApi
+
+		//Cerbo Integration
+		CerboApiObjId uint
+		CerboApiObj   CerboApi
 	}
 
 	GhlTrigger struct {

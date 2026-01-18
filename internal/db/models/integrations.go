@@ -9,3 +9,12 @@ type ZenotiApi struct {
 	Url       string
 	gorm.Model
 }
+
+type CerboApi struct {
+	ApiName   string
+	ProfileId uint
+	Subdomain string
+	Username  string
+	ApiKey    string
+	gorm.Model
+}

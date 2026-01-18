@@ -6,6 +6,7 @@ import (
 	"client-runaway-zenoti/internal/services/auth"
 	"client-runaway-zenoti/internal/services/automator"
 	"client-runaway-zenoti/internal/services/svc_attribution"
+	"client-runaway-zenoti/internal/services/svc_cerbo"
 	"client-runaway-zenoti/internal/services/svc_config"
 	"client-runaway-zenoti/internal/services/svc_ghl"
 	"client-runaway-zenoti/internal/services/svc_googleads"
@@ -64,6 +65,11 @@ func setRoutes(router *gin.Engine) {
 	settings.PATCH("/zenoti/apis/:zenotiApiId", auth.Auth, svc_config.UpdateZenotiApi)
 	settings.DELETE("/zenoti/apis/:zenotiApiId", auth.Auth, svc_config.DeleteZenotiApi)
 
+	settings.GET("/cerbo/apis", auth.Auth, svc_config.GetCerboApis)
+	settings.POST("/cerbo/apis", auth.Auth, svc_config.CreateCerboApi)
+	settings.PATCH("/cerbo/apis/:cerboApiId", auth.Auth, svc_config.UpdateCerboApi)
+	settings.DELETE("/cerbo/apis/:cerboApiId", auth.Auth, svc_config.DeleteCerboApi)
+
 	settings.PATCH("/locations/:locationId", auth.Auth, svc_config.UpdateLocation)
 
 	settings.POST("/flows", auth.Auth, svc_attribution.CreateAttributionFlow)
@@ -73,6 +79,7 @@ func setRoutes(router *gin.Engine) {
 	// Integrations routes
 	integrations := router.Group("/integrations")
 	integrations.GET("/zenoti/centers/:zenotiApiId", auth.Auth, svc_zenoti.GetZenotiCenters)
+	integrations.GET("/cerbo/encounter-types/:locationId", auth.Auth, svc_cerbo.GetEncounterTypesForLocation)
 
 	// Google Ads OAuth (new flow; legacy jpmReport remains unchanged)
 	ga := router.Group("/google-ads")
