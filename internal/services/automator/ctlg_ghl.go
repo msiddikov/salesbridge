@@ -5,9 +5,11 @@ import (
 	"client-runaway-zenoti/internal/services/svc_ghl"
 	runwayv2 "client-runaway-zenoti/packages/runwayV2"
 	"context"
+	"encoding/json"
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 )
 
 var (
@@ -36,6 +38,8 @@ var (
 			ghlActionFindContact,
 			ghlActionCreateContact,
 			ghlActionUpdateContact,
+
+			ghlActionContactCallTranscriptions,
 		},
 	}
 
@@ -223,6 +227,25 @@ var (
 			errorPort,
 		},
 		Fields: ghlContactFields,
+	}
+
+	ghlActionContactCallTranscriptions = Node{
+		Id:          "ghl.contact.calls.transcriptions",
+		Title:       "Contact Call Transcriptions",
+		Description: "Fetches recent call transcriptions for a contact.",
+		ExecFunc:    ghlContactCallTranscriptions,
+		Type:        NodeTypeAction,
+		Icon:        "ri:phone-line",
+		Kind:        "Contacts",
+		Color:       ColorAction,
+		Ports: []NodePort{
+			successPort([]NodeField{{Key: "transcription", Type: "string"}}),
+			errorPort,
+		},
+		Fields: []NodeField{
+			{Key: "contact_id", Type: "string", Required: true},
+			{Key: "limit", Type: "number", Required: true},
+		},
 	}
 
 	//
@@ -473,6 +496,119 @@ func ghlUpdateContact(ctx context.Context, fields map[string]interface{}, l mode
 	}
 
 	return successPayload(mapGhlContactToNodePayload(updatedContact))
+}
+
+func ghlContactCallTranscriptions(ctx context.Context, fields map[string]interface{}, l models.Location) (payload map[string]map[string]interface{}) {
+	contactID := strings.TrimSpace(fmt.Sprint(fields["contact_id"]))
+	if contactID == "" {
+		return errorPayload(nil, "contact_id is required")
+	}
+
+	limit := parseLimit(fields["limit"])
+	if limit <= 0 {
+		limit = 5
+	}
+
+	cli, err := svc.NewClientFromId(l.Id)
+	if err != nil {
+		return errorPayload(err, "failed to create GHL client")
+	}
+
+	res, err := cli.MessagesExport(runwayv2.MessagesFilter{
+		Channel:   "Call",
+		ContactId: contactID,
+		Limit:     limit,
+		SortBy:    "dateAdded",
+		SortOrder: "desc",
+	})
+	if err != nil {
+		return errorPayload(err, "failed to fetch contact calls")
+	}
+
+	if len(res.Messages) == 0 {
+		return successPayload(map[string]interface{}{"transcription": ""})
+	}
+
+	var builder strings.Builder
+	for _, msg := range res.Messages {
+		if msg.Id == "" {
+			continue
+		}
+		callDate := formatCallDate(msg.DateAdded)
+		if callDate != "" {
+			builder.WriteString("Call on ")
+			builder.WriteString(callDate)
+			builder.WriteString("\n")
+		}
+
+		transcriptions, err := cli.MessagesGetTranscription(msg.Id)
+		if err != nil {
+			continue
+		}
+		for _, t := range transcriptions {
+			line := formatTranscriptLine(t.StartTime, t.Transcript)
+			if line == "" {
+				continue
+			}
+			builder.WriteString(line)
+			builder.WriteString("\n")
+		}
+	}
+
+	output := strings.TrimSpace(builder.String())
+	return successPayload(map[string]interface{}{"transcription": output})
+}
+
+func parseLimit(raw interface{}) int {
+	switch v := raw.(type) {
+	case float64:
+		return int(v)
+	case float32:
+		return int(v)
+	case int:
+		return v
+	case int64:
+		return int(v)
+	case json.Number:
+		if i, err := v.Int64(); err == nil {
+			return int(i)
+		}
+	case string:
+		if i, err := strconv.Atoi(strings.TrimSpace(v)); err == nil {
+			return i
+		}
+	}
+	return 0
+}
+
+func formatCallDate(raw string) string {
+	trimmed := strings.TrimSpace(raw)
+	if trimmed == "" {
+		return ""
+	}
+	if t, err := time.Parse(time.RFC3339, trimmed); err == nil {
+		return t.Format("2006-01-02")
+	}
+	if t, err := time.Parse(time.RFC3339Nano, trimmed); err == nil {
+		return t.Format("2006-01-02")
+	}
+	return trimmed
+}
+
+func formatTranscriptLine(startTime, message string) string {
+	msg := strings.TrimSpace(message)
+	if msg == "" {
+		return ""
+	}
+	start := strings.TrimSpace(startTime)
+	if start == "" {
+		start = "unknown"
+	} else if parsed, err := time.Parse(time.RFC3339, start); err == nil {
+		start = parsed.Format("15:04:05")
+	} else if parsed, err := time.Parse(time.RFC3339Nano, start); err == nil {
+		start = parsed.Format("15:04:05")
+	}
+	return fmt.Sprintf("%s: %s", start, msg)
 }
 
 var ghlActionGetContact = Node{

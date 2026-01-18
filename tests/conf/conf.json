@@ -9,6 +9,10 @@
         "ClientSecret": "",
         "Token": "",
         "RefreshToken": "",
+        "OpenAIAPIKey": "",
+        "OpenAIBaseURL": "",
+        "OpenAIOrganization": "",
+        "OpenAIProject": "",
         "CRAgencyAPI": ""
     },
     "RC": {

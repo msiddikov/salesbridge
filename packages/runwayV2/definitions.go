@@ -212,6 +212,25 @@ type (
 		ValueRange map[string]string `json:"-"`
 		Filters    []Filter          `json:"filters,omitempty"`
 	}
+
+	Message struct {
+		Id                     string   `json:"id,omitempty"`
+		AltId                  string   `json:"altId,omitempty"`
+		MessageType            string   `json:"messageType,omitempty"`
+		LocationId             string   `json:"locationId,omitempty"`
+		ContactId              string   `json:"contactId,omitempty"`
+		ConversationId         string   `json:"conversationId,omitempty"`
+		DateAdded              string   `json:"dateAdded,omitempty"`
+		Body                   string   `json:"body,omitempty"`
+		Direction              string   `json:"direction,omitempty"`
+		Status                 string   `json:"status,omitempty"`
+		ContentType            string   `json:"contentType,omitempty"`
+		Attachments            []string `json:"attachments,omitempty"`
+		UserId                 string   `json:"userId,omitempty"`
+		ConversationProviderId string   `json:"conversationProviderId,omitempty"`
+		From                   string   `json:"from,omitempty"`
+		To                     string   `json:"to,omitempty"`
+	}
 )
 
 // MarshalJSON implements custom JSON marshaling for Filter so that the

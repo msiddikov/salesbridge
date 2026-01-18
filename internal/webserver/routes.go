@@ -10,6 +10,7 @@ import (
 	"client-runaway-zenoti/internal/services/svc_ghl"
 	"client-runaway-zenoti/internal/services/svc_googleads"
 	svc_jpmreport "client-runaway-zenoti/internal/services/svc_jpmReport"
+	"client-runaway-zenoti/internal/services/svc_openai"
 	"client-runaway-zenoti/internal/services/svc_zenoti"
 
 	"github.com/gin-gonic/gin"
@@ -91,5 +92,16 @@ func setRoutes(router *gin.Engine) {
 	legacyGA.GET("/connections", auth.Auth, svc_googleads.ListConnections)
 	legacyGA.DELETE("/connections/:accountId", auth.Auth, svc_googleads.DeleteConnection)
 	router.GET("/googleads/oauth/callback", svc_googleads.OAuthCallback)
+
+	// AI Assistants
+	ai := router.Group("/ai")
+	ai.GET("/models", auth.Auth, svc_openai.ListModels)
+	ai.GET("/pricing", auth.Auth, svc_openai.ListPricing)
+	ai.PUT("/pricing/:model", auth.Auth, svc_openai.UpsertPricing)
+	ai.GET("/usage", auth.Auth, svc_openai.ListUsage)
+	ai.GET("/assistants", auth.Auth, svc_openai.ListAssistants)
+	ai.POST("/assistants", auth.Auth, svc_openai.CreateAssistant)
+	ai.PATCH("/assistants/:assistantId", auth.Auth, svc_openai.UpdateAssistant)
+	ai.DELETE("/assistants/:assistantId", auth.Auth, svc_openai.DeleteAssistant)
 
 }

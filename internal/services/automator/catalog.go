@@ -9,6 +9,7 @@ var (
 	catalogFull = Catalog{
 		Meta: templateMeta,
 		Categories: []Category{
+			aiCategory,
 			ghlCategory,
 			zenotiCategory,
 			attributionCategory,

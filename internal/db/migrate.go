@@ -99,6 +99,11 @@ func Migrate() {
 		panic(err)
 	}
 
+	err = DB.AutoMigrate(&models.OpenAIAssistant{}, &models.OpenAIModelPricing{}, &models.OpenAIUsageDaily{})
+	if err != nil {
+		panic(err)
+	}
+
 	defContact := models.Contact{
 		LocationId:    "0",
 		ContactId:     "0",

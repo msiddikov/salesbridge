@@ -35,6 +35,11 @@ type (
 		GoogleAdsClientSecret string
 		GoogleAdsRedirectUrl  string
 
+		OpenAIAPIKey       string
+		OpenAIBaseURL      string
+		OpenAIOrganization string
+		OpenAIProject      string
+
 		CRAgencyAPI string
 	}
 
