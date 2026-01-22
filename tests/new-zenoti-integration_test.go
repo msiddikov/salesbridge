@@ -195,3 +195,19 @@ func TestUpdateCollection(t *testing.T) {
 		t.Error(err)
 	}
 }
+
+func TestGetWorkflows(t *testing.T) {
+
+	locationName := "Hand and Stone - Landstown"
+
+	_, _, cli, err := getClients(locationName)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	worflows, err := cli.WorkflowsGet()
+	if err != nil {
+		t.Error(err)
+	}
+	fmt.Println("Workflows:", worflows)
+}
