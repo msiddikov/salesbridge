@@ -212,6 +212,7 @@ type (
 			Id             string
 			Invoice_number string
 			Invoice_date   ZenotiTime
+			Center_id      string
 			Total_price    struct {
 				Currency_id         uint
 				Net_price           float64
@@ -220,14 +221,36 @@ type (
 				Total_price         float64
 				Sum_total           float64
 			}
+
+			Guest         InvoiceGuestInfo
+			Invoice_Items []InvoiceItemsInfo `json:"invoice_items"`
 		} `json:"invoice"`
-		Guest struct {
-			Id           string
-			First_name   string
-			Last_name    string
-			Mobile_phone string
+
+		Guest         InvoiceGuestInfo
+		Invoice_Items []InvoiceItemsInfo `json:"invoice_items"`
+		Appointments  []Appointment
+	}
+
+	InvoiceGuestInfo struct {
+		Id           string
+		First_name   string
+		Last_name    string
+		Mobile_phone string
+		Email        string
+	}
+
+	InvoiceItemsInfo struct {
+		Id       string
+		Name     string
+		Type     int
+		Quantity int
+		Price    struct {
+			Currency_id uint
+			Sales       float64
+			Tax         float64
+			Final       float64
+			Discount    float64
 		}
-		Appointments []Appointment
 	}
 
 	ZenotiTime struct {
@@ -289,33 +312,11 @@ type (
 	}
 
 	// Webhook definitions
-	InvoiceWebhookData struct {
-		Id           string
-		Invoice_Date ZenotiTime
-		Center_Id    string
-		Total_Price  struct {
-			Sum_Total float64
-		}
-
-		Guest GuestWebhookData
-	}
-
-	GuestWebhookData struct {
-		Id           string
-		First_Name   string
-		Last_Name    string
-		Mobile_Phone string
-		Email        string
-	}
-
-	WebhookDataPayload struct {
-		Invoice InvoiceWebhookData
-	}
 
 	WebhookData struct {
 		Id         string
 		Event_type string
-		Data       WebhookDataPayload
+		Data       Invoice
 	}
 
 	PaymentOption struct {

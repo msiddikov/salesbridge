@@ -245,7 +245,7 @@ var zenotiTriggerInvoiceClosed = Node{
 
 func ZenotiTriggerInvoiceClosed(ctx context.Context, WebhookBodyBytes []byte) error {
 	type WebhookBody struct {
-		Data zenotiv1.WebhookDataPayload `json:"data"`
+		Data zenotiv1.Invoice `json:"data"`
 	}
 
 	var webhookBody WebhookBody
@@ -254,7 +254,7 @@ func ZenotiTriggerInvoiceClosed(ctx context.Context, WebhookBodyBytes []byte) er
 	}
 
 	locs := []models.Location{}
-	err := db.DB.Where("zenoti_center_id = ?", webhookBody.Data.Invoice.Center_Id).Find(&locs).Error
+	err := db.DB.Where("zenoti_center_id = ?", webhookBody.Data.Invoice.Center_id).Find(&locs).Error
 	if err != nil {
 		return err
 	}
@@ -1077,19 +1077,28 @@ var zenotiInvoiceNodeFields = []NodeField{
 	{Key: "guestLastName", Label: "Guest Last Name", Type: "string"},
 	{Key: "guestEmail", Label: "Guest Email", Type: "string"},
 	{Key: "guestPhone", Label: "Guest Phone", Type: "string"},
+
+	{Key: "serviceIds", Label: "Service IDs", Type: "string"},
+	{Key: "serviceNames", Label: "Service Names", Type: "string"},
 }
 
-func mapZenotiInvoiceClosedWebhookToNodePayload(data zenotiv1.WebhookDataPayload) map[string]interface{} {
+func mapZenotiInvoiceClosedWebhookToNodePayload(data zenotiv1.Invoice) map[string]interface{} {
 	res := make(map[string]interface{})
 	res["id"] = data.Invoice.Id
-	res["date"] = data.Invoice.Invoice_Date.Time.Format("2006-01-02 15:04:05")
-	res["amount"] = toString(data.Invoice.Total_Price.Sum_Total)
-
+	res["date"] = data.Invoice.Invoice_date.Time.Format("2006-01-02 15:04:05")
+	res["amount"] = toString(data.Invoice.Total_price.Sum_total)
 	res["guestId"] = data.Invoice.Guest.Id
-	res["guestFirstName"] = data.Invoice.Guest.First_Name
-	res["guestLastName"] = data.Invoice.Guest.Last_Name
+	res["guestFirstName"] = data.Invoice.Guest.First_name
+	res["guestLastName"] = data.Invoice.Guest.Last_name
 	res["guestEmail"] = data.Invoice.Guest.Email
-	res["guestPhone"] = data.Invoice.Guest.Mobile_Phone
+	res["guestPhone"] = data.Invoice.Guest.Mobile_phone
+	res["serviceIds"] = ""
+	res["serviceNames"] = ""
+
+	for _, item := range data.Invoice.Invoice_Items {
+		res["serviceIds"] = res["serviceIds"].(string) + item.Id + ","
+		res["serviceNames"] = res["serviceNames"].(string) + item.Name + ","
+	}
 
 	return res
 }
@@ -1104,6 +1113,14 @@ func mapZenotiInvoiceToNodePayload(data zenotiv1.Invoice) map[string]interface{}
 	res["guestFirstName"] = data.Guest.First_name
 	res["guestLastName"] = data.Guest.Last_name
 	res["guestPhone"] = data.Guest.Mobile_phone
+
+	res["serviceIds"] = ""
+	res["serviceNames"] = ""
+
+	for _, item := range data.Invoice_Items {
+		res["serviceIds"] = res["serviceIds"].(string) + item.Id + ","
+		res["serviceNames"] = res["serviceNames"].(string) + item.Name + ","
+	}
 
 	return res
 }

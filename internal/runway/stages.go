@@ -236,7 +236,7 @@ func UpdateCollection(c zenotiv1.Collection, l models.Location, client runwayv2.
 func UpdateCollectionFromWebhook(data zenotiv1.WebhookData) error {
 	// check if there is a location with this center id
 	l := models.Location{}
-	err := db.DB.Where("zenoti_center_id = ? and sync_contacts=true", data.Data.Invoice.Center_Id).First(&l).Error
+	err := db.DB.Where("zenoti_center_id = ? and sync_contacts=true", data.Data.Invoice.Center_id).First(&l).Error
 	if err != nil {
 		return nil
 	}
@@ -247,17 +247,17 @@ func UpdateCollectionFromWebhook(data zenotiv1.WebhookData) error {
 		Guest_id:   data.Data.Invoice.Guest.Id,
 		Guest: zenotiv1.Guest{
 			Id:        data.Data.Invoice.Guest.Id,
-			Center_id: data.Data.Invoice.Center_Id,
+			Center_id: data.Data.Invoice.Center_id,
 			Personal_info: zenotiv1.Personal_info{
-				First_name: data.Data.Invoice.Guest.First_Name,
-				Last_name:  data.Data.Invoice.Guest.Last_Name,
+				First_name: data.Data.Invoice.Guest.First_name,
+				Last_name:  data.Data.Invoice.Guest.Last_name,
 				Email:      data.Data.Invoice.Guest.Email,
 				Mobile_phone: zenotiv1.Phone_info{
-					Number: data.Data.Invoice.Guest.Mobile_Phone,
+					Number: data.Data.Invoice.Guest.Mobile_phone,
 				},
 			},
 		},
-		Total_collection: data.Data.Invoice.Total_Price.Sum_Total,
+		Total_collection: data.Data.Invoice.Total_price.Sum_total,
 	}
 
 	// create a client
