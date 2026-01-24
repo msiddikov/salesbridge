@@ -208,6 +208,7 @@ func DeleteAssistant(c *gin.Context) {
 
 func ListModels(c *gin.Context) {
 	models := []gin.H{
+		{"id": "gpt-5.2", "name": "GPT-5.2"},
 		{"id": "gpt-5-mini", "name": "GPT-5 mini"},
 		{"id": "gpt-4.1-nano", "name": "GPT-4.1 nano"},
 		{"id": "gpt-4.1-mini", "name": "GPT-4.1 mini"},

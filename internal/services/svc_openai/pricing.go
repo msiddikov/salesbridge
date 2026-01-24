@@ -16,6 +16,12 @@ type pricingPayload struct {
 	OutputCentsPer1K float64 `json:"outputCentsPer1k"`
 }
 
+type pricingBatchItem struct {
+	Model            string  `json:"model"`
+	InputCentsPer1K  float64 `json:"inputCentsPer1k"`
+	OutputCentsPer1K float64 `json:"outputCentsPer1k"`
+}
+
 type pricingResponse struct {
 	Model            string  `json:"model"`
 	InputCentsPer1K  float64 `json:"inputCentsPer1k"`
@@ -88,6 +94,74 @@ func UpsertPricing(c *gin.Context) {
 		InputCentsPer1K:  record.InputCentsPer1K,
 		OutputCentsPer1K: record.OutputCentsPer1K,
 		UpdatedAt:        time.Now().UTC().Unix(),
+	}
+
+	c.Data(lvn.Res(200, resp, "OK"))
+}
+
+func UpsertPricingBatch(c *gin.Context) {
+	payload := []pricingBatchItem{}
+	err := c.BindJSON(&payload)
+	lvn.GinErr(c, 400, err, "error while binding json")
+	if err != nil {
+		return
+	}
+
+	if len(payload) == 0 {
+		lvn.GinErr(c, 400, nil, "pricing list is required")
+		return
+	}
+
+	orderedModels := make([]string, 0, len(payload))
+	itemsByModel := make(map[string]pricingBatchItem, len(payload))
+	for _, item := range payload {
+		model := strings.TrimSpace(item.Model)
+		if model == "" {
+			lvn.GinErr(c, 400, nil, "model is required")
+			return
+		}
+		if item.InputCentsPer1K < 0 || item.OutputCentsPer1K < 0 {
+			lvn.GinErr(c, 400, nil, "pricing must be non-negative")
+			return
+		}
+
+		if _, exists := itemsByModel[model]; !exists {
+			orderedModels = append(orderedModels, model)
+		}
+		item.Model = model
+		itemsByModel[model] = item
+	}
+
+	now := time.Now().UTC()
+	records := make([]models.OpenAIModelPricing, 0, len(orderedModels))
+	for _, model := range orderedModels {
+		item := itemsByModel[model]
+		records = append(records, models.OpenAIModelPricing{
+			Model:            model,
+			InputCentsPer1K:  item.InputCentsPer1K,
+			OutputCentsPer1K: item.OutputCentsPer1K,
+			UpdatedAt:        now,
+		})
+	}
+
+	err = db.DB.Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "model"}},
+		DoUpdates: clause.AssignmentColumns([]string{"input_cents_per1_k", "output_cents_per1_k", "updated_at"}),
+	}).Create(&records).Error
+	lvn.GinErr(c, 400, err, "unable to save pricing")
+	if err != nil {
+		return
+	}
+
+	resp := make([]pricingResponse, 0, len(orderedModels))
+	for _, model := range orderedModels {
+		item := itemsByModel[model]
+		resp = append(resp, pricingResponse{
+			Model:            model,
+			InputCentsPer1K:  item.InputCentsPer1K,
+			OutputCentsPer1K: item.OutputCentsPer1K,
+			UpdatedAt:        now.Unix(),
+		})
 	}
 
 	c.Data(lvn.Res(200, resp, "OK"))

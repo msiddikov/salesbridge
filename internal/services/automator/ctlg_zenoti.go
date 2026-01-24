@@ -21,6 +21,7 @@ var (
 		Nodes: []Node{
 			zenotiTriggerGuestCreated,
 			zenotiTriggerAppointmentCreated,
+			zenotiTriggerAppointmentGroupStatus,
 			zenotiTriggerInvoiceClosed,
 			zenotiCollectionAppointments,
 			zenotiCollectionCollectionsNew,
@@ -147,6 +148,17 @@ var (
 		{Key: "date", Label: "Appointment Date", Type: "string"},
 	}
 
+	zenotiAppointmentGroupStatusNodeFields = []NodeField{
+		{Key: "invoiceId", Label: "Invoice ID", Type: "string"},
+		{Key: "appointmentGroupId", Label: "Appointment Group ID", Type: "string"},
+		{Key: "statusId", Label: "Status ID", Type: "number"},
+		{Key: "status", Label: "Status", Type: "string"},
+		{Key: "guestId", Label: "Guest ID", Type: "string"},
+		{Key: "firstName", Label: "First Name", Type: "string"},
+		{Key: "lastName", Label: "Last Name", Type: "string"},
+		{Key: "email", Label: "Email", Type: "string"},
+	}
+
 	zenotiGuestNodeFields = []NodeField{
 		{Key: "id", Label: "Guest ID", Type: "string"},
 		{Key: "centerId", Label: "Center ID", Type: "string"},
@@ -194,6 +206,21 @@ var zenotiTriggerAppointmentCreated = Node{
 	},
 }
 
+var zenotiTriggerAppointmentGroupStatus = Node{
+	Id:          "zenoti.appointment_group.status",
+	Title:       "Appointment Group Status",
+	Description: "Triggers when an appointment group status changes in Zenoti.",
+	Type:        NodeTypeTrigger,
+	Icon:        "ri:form",
+	Color:       ColorTrigger,
+	Ports: []NodePort{
+		{
+			Name:    "out",
+			Payload: zenotiAppointmentGroupStatusNodeFields,
+		},
+	},
+}
+
 func ZenotiTriggerAppointmentCreated(ctx context.Context, WebhookBodyBytes []byte) error {
 	type WebhookBody struct {
 		Data zenotiv1.AppointmentGroupWebhookData `json:"data"`
@@ -216,6 +243,39 @@ func ZenotiTriggerAppointmentCreated(ctx context.Context, WebhookBodyBytes []byt
 		triggerInput := TriggerInput{
 			LocationID:  loc.Id,
 			TriggerType: "zenoti.appointment.created",
+			Port:        "out",
+			Payload:     res,
+		}
+		err = StartAutomationsForTrigger(ctx, triggerInput)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func ZenotiTriggerAppointmentGroupStatus(ctx context.Context, WebhookBodyBytes []byte) error {
+	type WebhookBody struct {
+		Data zenotiv1.AppointmentGroupStatusWebhookData `json:"data"`
+	}
+
+	var webhookBody WebhookBody
+	if err := json.Unmarshal(WebhookBodyBytes, &webhookBody); err != nil {
+		return err
+	}
+
+	locs := []models.Location{}
+	err := db.DB.Where("zenoti_center_id = ?", webhookBody.Data.Center_Id).Find(&locs).Error
+	if err != nil {
+		return err
+	}
+
+	for _, loc := range locs {
+		res := mapZenotiAppointmentGroupStatusToNodePayload(webhookBody.Data)
+		triggerInput := TriggerInput{
+			LocationID:  loc.Id,
+			TriggerType: "zenoti.appointment_group.status",
 			Port:        "out",
 			Payload:     res,
 		}
@@ -1027,6 +1087,38 @@ func mapZenotiAppointmentGroupToNodePayload(apptGroup zenotiv1.AppointmentGroupW
 	}
 
 	return res
+}
+
+func mapZenotiAppointmentGroupStatusToNodePayload(apptGroup zenotiv1.AppointmentGroupStatusWebhookData) map[string]interface{} {
+	res := make(map[string]interface{})
+	res["invoiceId"] = apptGroup.Invoice_id
+	res["appointmentGroupId"] = apptGroup.Appointment_Group_Id
+	res["statusId"] = apptGroup.Appointment_Group_Status
+	res["status"] = zenotiStatusToString(apptGroup.Appointment_Group_Status)
+	res["guestId"] = apptGroup.Guest.Id
+	res["firstName"] = apptGroup.Guest.FirstName
+	res["lastName"] = apptGroup.Guest.LastName
+	res["email"] = apptGroup.Guest.Email
+	return res
+}
+
+func zenotiStatusToString(status zenotiv1.ZenotiStatus) string {
+	switch status {
+	case zenotiv1.NoShowed:
+		return "NoShowed"
+	case zenotiv1.Canceled:
+		return "Canceled"
+	case zenotiv1.Booked:
+		return "Booked"
+	case zenotiv1.Closed:
+		return "Closed"
+	case zenotiv1.CheckedIn:
+		return "CheckedIn"
+	case zenotiv1.Confirmed:
+		return "Confirmed"
+	default:
+		return fmt.Sprintf("%d", status)
+	}
 }
 
 func mapZenotiAppointmentToNodePayload(appt zenotiv1.Appointment) map[string]interface{} {

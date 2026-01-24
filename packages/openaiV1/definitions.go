@@ -15,9 +15,11 @@ type (
 	}
 
 	ResponseUsage struct {
-		InputTokens  int `json:"input_tokens,omitempty"`
-		OutputTokens int `json:"output_tokens,omitempty"`
-		TotalTokens  int `json:"total_tokens,omitempty"`
+		InputTokens      int `json:"input_tokens,omitempty"`
+		OutputTokens     int `json:"output_tokens,omitempty"`
+		PromptTokens     int `json:"prompt_tokens,omitempty"`
+		CompletionTokens int `json:"completion_tokens,omitempty"`
+		TotalTokens      int `json:"total_tokens,omitempty"`
 	}
 
 	ResponseError struct {

@@ -1,37 +1,35 @@
 {
-    "Locations": [],
-    "Settings": {
-        "SrvAddress": "0.0.0.0:8080",
-        "SrvDomain": "https://salesbridge.lavina.tech",
-        "Cert": "",
-        "Key": "",
-        "ClientId": "",
-        "ClientSecret": "",
-        "Token": "",
-        "RefreshToken": "",
-        "OpenAIAPIKey": "",
-        "OpenAIBaseURL": "",
-        "OpenAIOrganization": "",
-        "OpenAIProject": "",
-        "CRAgencyAPI": ""
-    },
-    "RC": {
-        "ClientId": "5Bzx0Ql3QQaNxbl3cwmnbw",
-        "ClientSecret": "1cyxID9HRW2hoXwWgiAm7QSqXkUYCIQtqIAVZE97m1eQ",
-        "ServerURL": "https://platform.devtest.ringcentral.com",
-        "Username": "+16169871953",
-        "Extension": "101",
-        "Password": "Alpha123",
-        "SyncDate": "0001-01-01T00:00:00Z",
-        "Locations": [
-            "Test"
-        ]
-    },
-    "DB": {
-        "Host": "192.168.1.104",
-        "Port": "5432",
-        "User": "lavina",
-        "Password": "Lavina2j&OI23J87",
-        "DbName": "salesbridge"
-    }
+  "Locations": [],
+  "Settings": {
+    "SrvAddress": "0.0.0.0:8080",
+    "SrvDomain": "https://salesbridge-api.lavina.tech",
+    "Cert": "",
+    "Key": "",
+    "ClientId": "",
+    "ClientSecret": "",
+    "Token": "",
+    "RefreshToken": "",
+    "OpenAIAPIKey": "",
+    "OpenAIBaseURL": "",
+    "OpenAIOrganization": "",
+    "OpenAIProject": "",
+    "CRAgencyAPI": ""
+  },
+  "RC": {
+    "ClientId": "5Bzx0Ql3QQaNxbl3cwmnbw",
+    "ClientSecret": "1cyxID9HRW2hoXwWgiAm7QSqXkUYCIQtqIAVZE97m1eQ",
+    "ServerURL": "https://platform.devtest.ringcentral.com",
+    "Username": "+16169871953",
+    "Extension": "101",
+    "Password": "Alpha123",
+    "SyncDate": "0001-01-01T00:00:00Z",
+    "Locations": ["Test"]
+  },
+  "DB": {
+    "Host": "192.168.1.104",
+    "Port": "5432",
+    "User": "lavina",
+    "Password": "Lavina2j&OI23J87",
+    "DbName": "salesbridge"
+  }
 }

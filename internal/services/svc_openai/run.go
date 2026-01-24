@@ -64,7 +64,10 @@ func RunThroughAssistant(id, text string) (string, error) {
 		modelName = assistant.GptModel
 	}
 	if modelName != "" {
-		_ = recordAIUsage(assistant.ProfileID, modelName, run.Usage)
+		err = recordAIUsage(assistant.ProfileID, modelName, run.Usage)
+		if err != nil {
+			return "", err
+		}
 	}
 
 	messages, err := client.ThreadsMessagesList(thread.ID, 20)
@@ -140,8 +143,8 @@ func recordAIUsage(profileID uint, model string, usage openaiv1.ResponseUsage) e
 	inputCost := 0.0
 	outputCost := 0.0
 	if pricingErr == nil {
-		inputCost = (float64(usage.InputTokens) / 1000.0) * pricing.InputCentsPer1K
-		outputCost = (float64(usage.OutputTokens) / 1000.0) * pricing.OutputCentsPer1K
+		inputCost = (float64(usage.InputTokens) + float64(usage.PromptTokens)/1000.0) * pricing.InputCentsPer1K
+		outputCost = (float64(usage.OutputTokens) + float64(usage.CompletionTokens)/1000.0) * pricing.OutputCentsPer1K
 	}
 
 	costCents := inputCost + outputCost
@@ -150,19 +153,23 @@ func recordAIUsage(profileID uint, model string, usage openaiv1.ResponseUsage) e
 		ProfileID:    profileID,
 		Model:        model,
 		UsageDate:    usageDate,
-		InputTokens:  usage.InputTokens,
-		OutputTokens: usage.OutputTokens,
+		InputTokens:  usage.InputTokens + usage.PromptTokens,
+		OutputTokens: usage.OutputTokens + usage.CompletionTokens,
 		CostCents:    costCents,
 		Points:       costCents,
 	}
 
+	tbl := "open_ai_usage_dailies"
+
 	return db.DB.Clauses(clause.OnConflict{
-		Columns: []clause.Column{{Name: "profile_id"}, {Name: "model"}, {Name: "usage_date"}},
+		Columns: []clause.Column{
+			{Name: "profile_id"}, {Name: "model"}, {Name: "usage_date"},
+		},
 		DoUpdates: clause.Assignments(map[string]interface{}{
-			"input_tokens":  gorm.Expr("input_tokens + EXCLUDED.input_tokens"),
-			"output_tokens": gorm.Expr("output_tokens + EXCLUDED.output_tokens"),
-			"cost_cents":    gorm.Expr("cost_cents + EXCLUDED.cost_cents"),
-			"points":        gorm.Expr("points + EXCLUDED.points"),
+			"input_tokens":  gorm.Expr(tbl + ".input_tokens + EXCLUDED.input_tokens"),
+			"output_tokens": gorm.Expr(tbl + ".output_tokens + EXCLUDED.output_tokens"),
+			"cost_cents":    gorm.Expr(tbl + ".cost_cents + EXCLUDED.cost_cents"),
+			"points":        gorm.Expr(tbl + ".points + EXCLUDED.points"),
 			"updated_at":    time.Now().UTC(),
 		}),
 	}).Create(&record).Error

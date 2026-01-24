@@ -135,6 +135,22 @@ type (
 		Appointments         []AppointmentGroupAppointment
 	}
 
+	AppointmentGroupStatusWebhookData struct {
+		Appointment_Group_Id     string       `json:"appointment_group_id"`
+		Appointment_Group_Status ZenotiStatus  `json:"appointment_group_status"`
+		Invoice_id               string       `json:"invoice_id"`
+		Invoice_number           string       `json:"invoice_number"`
+		Center_Id                string       `json:"center_id"`
+		Guest                    AppointmentGroupStatusGuest `json:"guest"`
+	}
+
+	AppointmentGroupStatusGuest struct {
+		Id        string `json:"id"`
+		FirstName string `json:"first_name"`
+		LastName  string `json:"last_name"`
+		Email     string `json:"email"`
+	}
+
 	AppointmentGroupAppointment struct {
 		Appointment_Id       string
 		Start_time           ZenotiTime

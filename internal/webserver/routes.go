@@ -104,7 +104,9 @@ func setRoutes(router *gin.Engine) {
 	ai := router.Group("/ai")
 	ai.GET("/models", auth.Auth, svc_openai.ListModels)
 	ai.GET("/pricing", auth.Auth, svc_openai.ListPricing)
+	ai.PUT("/pricing", auth.Auth, svc_openai.UpsertPricingBatch)
 	ai.PUT("/pricing/:model", auth.Auth, svc_openai.UpsertPricing)
+
 	ai.GET("/usage", auth.Auth, svc_openai.ListUsage)
 	ai.GET("/assistants", auth.Auth, svc_openai.ListAssistants)
 	ai.POST("/assistants", auth.Auth, svc_openai.CreateAssistant)

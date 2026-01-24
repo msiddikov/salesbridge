@@ -90,19 +90,13 @@ func zenotiWebhook(c *gin.Context) {
 		lvn.GinErr(c, 500, err, "error in automation")
 
 		c.Data(lvn.Res(200, nil, "Success"))
+
+	case "AppointmentGroup.Status":
+		err = automator.ZenotiTriggerAppointmentGroupStatus(context.Background(), bodyBytes)
+		lvn.GinErr(c, 500, err, "error in automation")
+
+		c.Data(lvn.Res(200, nil, "Success"))
 	default:
 		c.Data(lvn.Res(200, nil, "Success"))
-	}
-}
-
-func webhookAuth(c *gin.Context) {
-
-	// check for key header
-	key := c.GetHeader("api-key")
-	if key != "JFM3oiu098&&83Dfg56)567" {
-		tgbot.Notify("Webhook Auth", "Unauthorized", true)
-		return
-		c.JSON(401, "")
-		c.Abort()
 	}
 }
