@@ -3,6 +3,7 @@ package automator
 import (
 	"client-runaway-zenoti/internal/db"
 	"client-runaway-zenoti/internal/db/models"
+	"client-runaway-zenoti/internal/services/svc_zenoti"
 	zenotiv1 "client-runaway-zenoti/packages/zenotiV1"
 	"context"
 	"encoding/json"
@@ -266,7 +267,12 @@ func ZenotiTriggerAppointmentGroupStatus(ctx context.Context, WebhookBodyBytes [
 	}
 
 	locs := []models.Location{}
-	err := db.DB.Where("zenoti_center_id = ?", webhookBody.Data.Center_Id).Find(&locs).Error
+	centerId, err := svc_zenoti.GetCenterIdByAppointmentGroupId(webhookBody.Data.Appointment_Group_Id)
+	if err != nil {
+		return err
+	}
+
+	err = db.DB.Where("zenoti_center_id = ?", centerId).Find(&locs).Error
 	if err != nil {
 		return err
 	}
@@ -1069,8 +1075,8 @@ func mapZenotiAppointmentGroupToNodePayload(apptGroup zenotiv1.AppointmentGroupW
 	res := make(map[string]interface{})
 	res["id"] = apptGroup.Appointment_Group_Id
 	res["guestId"] = apptGroup.Guest.Id
-	res["guestFirstName"] = apptGroup.Guest.FirstName
-	res["guestLastName"] = apptGroup.Guest.LastName
+	res["guestFirstName"] = apptGroup.Guest.First_name
+	res["guestLastName"] = apptGroup.Guest.Last_name
 	res["guestEmail"] = apptGroup.Guest.Email
 	res["centerId"] = apptGroup.Center_Id
 	res["invoiceId"] = apptGroup.Invoice_id
@@ -1096,8 +1102,8 @@ func mapZenotiAppointmentGroupStatusToNodePayload(apptGroup zenotiv1.Appointment
 	res["statusId"] = apptGroup.Appointment_Group_Status
 	res["status"] = zenotiStatusToString(apptGroup.Appointment_Group_Status)
 	res["guestId"] = apptGroup.Guest.Id
-	res["firstName"] = apptGroup.Guest.FirstName
-	res["lastName"] = apptGroup.Guest.LastName
+	res["firstName"] = apptGroup.Guest.First_name
+	res["lastName"] = apptGroup.Guest.Last_name
 	res["email"] = apptGroup.Guest.Email
 	return res
 }

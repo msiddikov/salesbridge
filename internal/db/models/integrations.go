@@ -1,6 +1,10 @@
 package models
 
-import "gorm.io/gorm"
+import (
+	"time"
+
+	"gorm.io/gorm"
+)
 
 type ZenotiApi struct {
 	ApiName   string
@@ -16,5 +20,14 @@ type CerboApi struct {
 	Subdomain string
 	Username  string
 	ApiKey    string
+	gorm.Model
+}
+
+// We need this link because the Zenoti Appointment Group status change do not provide CenterId
+type ZenotiAppointmentGroupIdCenterIdLink struct {
+	AppointmentGroupId string
+	InvoiceId          string
+	CenterId           string
+	OkToDelete         time.Time
 	gorm.Model
 }

@@ -128,27 +128,19 @@ type (
 	}
 
 	AppointmentGroupWebhookData struct {
-		Appointment_Group_Id string `json:"appointment_group_id"`
-		Invoice_id           string `json:"invoice_id"`
-		Center_Id            string `json:"center_id"`
-		Guest                AppointmentGroupGuest
+		Appointment_Group_Id string           `json:"appointment_group_id"`
+		Invoice_id           string           `json:"invoice_id"`
+		Center_Id            string           `json:"center_id"`
+		Guest                WebhookGuestInfo `json:"guest"`
 		Appointments         []AppointmentGroupAppointment
 	}
 
 	AppointmentGroupStatusWebhookData struct {
-		Appointment_Group_Id     string       `json:"appointment_group_id"`
-		Appointment_Group_Status ZenotiStatus  `json:"appointment_group_status"`
-		Invoice_id               string       `json:"invoice_id"`
-		Invoice_number           string       `json:"invoice_number"`
-		Center_Id                string       `json:"center_id"`
-		Guest                    AppointmentGroupStatusGuest `json:"guest"`
-	}
-
-	AppointmentGroupStatusGuest struct {
-		Id        string `json:"id"`
-		FirstName string `json:"first_name"`
-		LastName  string `json:"last_name"`
-		Email     string `json:"email"`
+		Appointment_Group_Id     string           `json:"appointment_group_id"`
+		Appointment_Group_Status ZenotiStatus     `json:"appointment_group_status"`
+		Invoice_id               string           `json:"invoice_id"`
+		Invoice_number           string           `json:"invoice_number"`
+		Guest                    WebhookGuestInfo `json:"guest"`
 	}
 
 	AppointmentGroupAppointment struct {
@@ -160,13 +152,6 @@ type (
 		Status               ZenotiStatus
 		Service_id           string
 		Service_Name         string
-	}
-
-	AppointmentGroupGuest struct {
-		Id        string
-		FirstName string
-		LastName  string
-		Email     string
 	}
 
 	AppointmentService struct {
@@ -238,16 +223,16 @@ type (
 				Sum_total           float64
 			}
 
-			Guest         InvoiceGuestInfo
+			Guest         WebhookGuestInfo
 			Invoice_Items []InvoiceItemsInfo `json:"invoice_items"`
 		} `json:"invoice"`
 
-		Guest         InvoiceGuestInfo
+		Guest         WebhookGuestInfo
 		Invoice_Items []InvoiceItemsInfo `json:"invoice_items"`
 		Appointments  []Appointment
 	}
 
-	InvoiceGuestInfo struct {
+	WebhookGuestInfo struct {
 		Id           string
 		First_name   string
 		Last_name    string

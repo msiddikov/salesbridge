@@ -11,6 +11,7 @@ import (
 	lvn "github.com/Lavina-Tech-LLC/lavinagopackage/v2"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"gorm.io/gorm/clause"
 )
 
 func GetAutomations(c *gin.Context) {
@@ -18,7 +19,10 @@ func GetAutomations(c *gin.Context) {
 	locationId := c.Param("locationId")
 	automations := []models.Automation{}
 
-	err := db.DB.Where("location_id = ?", locationId).Find(&automations).Error
+	err := db.DB.Where("location_id = ?", locationId).Order(clause.OrderBy{Columns: []clause.OrderByColumn{
+		{Column: clause.Column{Name: "state"}, Desc: false},
+		{Column: clause.Column{Name: "created_at"}, Desc: true},
+	}}).Find(&automations).Error
 	lvn.GinErr(c, 400, err, "error while getting automations")
 
 	c.Data(lvn.Res(200, automations, ""))

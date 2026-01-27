@@ -105,8 +105,11 @@ func Migrate() {
 	}
 
 	// Integrations
-	err = DB.AutoMigrate(&models.CerboApi{},
-		&models.ZenotiApi{})
+	err = DB.AutoMigrate(
+		&models.CerboApi{},
+		&models.ZenotiApi{},
+		&models.ZenotiAppointmentGroupIdCenterIdLink{},
+	)
 	if err != nil {
 		panic(err)
 	}
