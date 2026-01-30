@@ -9,21 +9,20 @@ func (rt *automationRuntime) nextNodes(ctx context.Context, parent *queuedNode, 
 	}
 
 	for port := range payloads {
-		nextID, edgeID := rt.next(parent.node.ID, port)
-		if nextID == "" {
-			continue
+		nextTargets := rt.next(parent.node.ID, port)
+		for _, target := range nextTargets {
+			nextNode, ok := rt.nodes[target.nodeID]
+			if !ok {
+				continue
+			}
+			child := &queuedNode{
+				node:           nextNode,
+				incomingEdgeID: target.edgeID,
+				incomingPort:   port,
+				parent:         parent,
+			}
+			nextNodes = append(nextNodes, child)
 		}
-		nextNode, ok := rt.nodes[nextID]
-		if !ok {
-			continue
-		}
-		child := &queuedNode{
-			node:           nextNode,
-			incomingEdgeID: edgeID,
-			incomingPort:   port,
-			parent:         parent,
-		}
-		nextNodes = append(nextNodes, child)
 	}
 
 	return nextNodes

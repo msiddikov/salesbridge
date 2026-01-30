@@ -6,7 +6,6 @@ import (
 	"client-runaway-zenoti/packages/cerbo"
 	"fmt"
 	"strings"
-	"time"
 )
 
 func FindPatient(location models.Location, firstName, lastName, email, username, dob string) (*cerbo.Patient, error) {
@@ -34,18 +33,10 @@ func FindPatient(location models.Location, firstName, lastName, email, username,
 	return &patients[0], nil
 }
 
-func CreateEncounter(location models.Location, patientID, encounterType, header, content string) (cerbo.Encounter, error) {
+func CreateEncounter(location models.Location, req cerbo.EncounterCreateRequest) (cerbo.Encounter, error) {
 	cli, err := clientForLocation(location)
 	if err != nil {
 		return cerbo.Encounter{}, err
-	}
-
-	req := cerbo.EncounterCreateRequest{
-		EncounterType: strings.TrimSpace(encounterType),
-		Title:         strings.TrimSpace(header),
-		Content:       strings.TrimSpace(content),
-		PatientId:     strings.TrimSpace(patientID),
-		DateOfService: time.Now().Format("2006-01-02"),
 	}
 
 	return cli.CreateEncounter(req)

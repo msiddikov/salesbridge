@@ -33,7 +33,7 @@ func TestExportMessages(t *testing.T) {
 
 	messages, err := client.MessagesExport(runwayv2.MessagesFilter{
 		Channel:   "Call",
-		ContactId: "uYm3APLDE5gm9dyDnH9K",
+		ContactId: "vIzeURrBH5kRI79ujxXi",
 	})
 
 	fmt.Println(len(messages.Messages))
@@ -46,7 +46,7 @@ func TestExportMessages(t *testing.T) {
 func TestGetTranscribe(t *testing.T) {
 	client := GetMedMatrixClient()
 
-	transcription, err := client.MessagesGetTranscription("pIVhXcFZJRgdDStH0zKs")
+	transcription, err := client.MessagesGetTranscription("zpZQPf5jyttRFa3mAaNk")
 
 	if err != nil {
 		t.Error(err)

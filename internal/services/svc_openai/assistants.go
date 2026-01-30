@@ -46,6 +46,46 @@ func ListAssistants(c *gin.Context) {
 	c.Data(lvn.Res(200, resp, "OK"))
 }
 
+func GetAssistantsList(location models.Location) (map[string]uint, error) {
+	var assistants []models.OpenAIAssistant
+
+	err := db.DB.Where("profile_id = ?", location.ProfileID).Order("created_at desc").Find(&assistants).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	resp := make(map[string]uint)
+	for _, a := range assistants {
+		resp[a.Name] = a.ID
+	}
+
+	return resp, nil
+}
+
+func GetAssistant(c *gin.Context) {
+	user := c.MustGet("user").(models.User)
+	id, err := strconv.ParseUint(c.Param("assistantId"), 10, 64)
+	lvn.GinErr(c, 400, err, "invalid assistant id")
+	if err != nil {
+		return
+	}
+
+	var assistant models.OpenAIAssistant
+	err = db.DB.Where("profile_id = ? AND id = ?", user.ProfileID, id).First(&assistant).Error
+	lvn.GinErr(c, 404, err, "assistant not found")
+	if err != nil {
+		return
+	}
+
+	c.Data(lvn.Res(200, assistantResponse{
+		ID:        assistant.ID,
+		Name:      assistant.Name,
+		Model:     assistant.GptModel,
+		CreatedAt: assistant.CreatedAt.Unix(),
+	}, "OK"))
+}
+
 func CreateAssistant(c *gin.Context) {
 	user := c.MustGet("user").(models.User)
 	payload := assistantPayload{}

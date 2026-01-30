@@ -48,6 +48,7 @@ type (
 		Label         string
 		Type          string
 		SelectOptions []string
+		ListFromApi   string
 		Required      bool
 	}
 

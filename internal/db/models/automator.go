@@ -255,6 +255,7 @@ type AutomationRun struct {
 	Status             AutomationRunStatus      `gorm:"type:text;not null"`
 	ErrorMessage       string                   `gorm:"type:text"`
 	RunNodesWithErrors int                      `gorm:"not null;default:0"`
+	RunNodesQty        int                      `gorm:"-"`
 	StartedAt          time.Time                `gorm:"not null"`
 	CompletedAt        *time.Time
 	RunNodes           []AutomationRunNode `gorm:"foreignKey:RunID"`

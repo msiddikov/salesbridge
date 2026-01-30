@@ -32,7 +32,7 @@ var (
 			errorPort,
 		},
 		Fields: []NodeField{
-			{Key: "assistant_id", Type: "string", Required: true},
+			{Key: "assistant_id", Type: "string", Required: true, ListFromApi: "aiAssistants"},
 			{Key: "text", Type: "string", Required: true},
 		},
 	}

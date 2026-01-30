@@ -3,6 +3,9 @@ package automator
 import (
 	"client-runaway-zenoti/internal/db"
 	"client-runaway-zenoti/internal/db/models"
+	"client-runaway-zenoti/internal/services/svc_cerbo"
+	"client-runaway-zenoti/internal/services/svc_googleads"
+	"client-runaway-zenoti/internal/services/svc_openai"
 	"context"
 	"encoding/csv"
 	"errors"
@@ -74,6 +77,36 @@ func getAutomationRuns(filter automationRunFilter) ([]models.AutomationRun, int6
 	err := query.Find(&runs).Error
 	if err != nil {
 		return nil, 0, err
+	}
+
+	// Get node counts for all runs in a single query
+	if len(runs) > 0 {
+		runIDs := make([]string, len(runs))
+		for i, run := range runs {
+			runIDs[i] = run.ID
+		}
+
+		type CountResult struct {
+			RunID string
+			Count int64
+		}
+		var counts []CountResult
+		err := db.DB.Model(&models.AutomationRunNode{}).
+			Select("run_id, COUNT(*) as count").
+			Where("run_id IN ?", runIDs).
+			Group("run_id").
+			Scan(&counts).Error
+
+		if err == nil {
+			countMap := make(map[string]int)
+			for _, c := range counts {
+				countMap[c.RunID] = int(c.Count)
+			}
+
+			for i := range runs {
+				runs[i].RunNodesQty = countMap[runs[i].ID]
+			}
+		}
 	}
 
 	var total int64
@@ -440,4 +473,49 @@ func nodeRunDisplayName(node models.AutomationRunNode) string {
 		return node.NodeID
 	}
 	return "Unnamed node"
+}
+
+func GetLists(c *gin.Context) {
+
+	listName := c.Param("listName")
+	locationId := c.Param("locationId")
+
+	var location models.Location
+	err := db.DB.Preload("CerboApiObj").First(&location, "id = ?", locationId).Error
+	lvn.GinErr(c, 400, err, "Could not find location")
+
+	switch listName {
+	case "cerboUsers":
+		users, err := svc_cerbo.ListUsers(location)
+		lvn.GinErr(c, 500, err, "failed to list cerbo users")
+
+		c.Data(lvn.Res(200, users, "OK"))
+		return
+	case "googleAdsActions":
+		list, err := svc_googleads.GetLocationConversionActionsList(location)
+		lvn.GinErr(c, 500, err, "failed to list google ads conversion actions")
+
+		c.Data(lvn.Res(200, list, "OK"))
+		return
+	case "aiAssistants":
+		list, err := svc_openai.GetAssistantsList(location)
+		lvn.GinErr(c, 500, err, "failed to list ai assistants")
+
+		c.Data(lvn.Res(200, list, "OK"))
+		return
+	case "cerboEncounterTypes":
+		types, err := svc_cerbo.GetEncounterTypesList(location)
+		lvn.GinErr(c, 500, err, "failed to list cerbo encounter types")
+
+		c.Data(lvn.Res(200, types, "OK"))
+		return
+	case "cerboFreeTextTypes":
+		types, err := svc_cerbo.ListFreeTextNoteTypes(location)
+		lvn.GinErr(c, 500, err, "failed to list cerbo free text types")
+
+		c.Data(lvn.Res(200, types, "OK"))
+		return
+	}
+
+	lvn.GinErr(c, 400, fmt.Errorf("unknown list name %q", listName), "unknown list name")
 }

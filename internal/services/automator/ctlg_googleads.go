@@ -34,7 +34,7 @@ var gaActionUploadConversionData = Node{
 		errorPort,
 	},
 	Fields: []NodeField{
-		{Key: "googleAdsActionId", Type: "string"},
+		{Key: "googleAdsActionId", Type: "string", ListFromApi: "googleAdsActions"},
 		{Key: "gclid", Type: "string"},
 		{Key: "eventTime", Type: "string"},
 		{Key: "value", Type: "string"},

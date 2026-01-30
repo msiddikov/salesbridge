@@ -34,6 +34,7 @@ func setRoutes(router *gin.Engine) {
 	// Automations routes
 	auto := router.Group("/auto")
 	auto.GET("/catalog", auth.Auth, automator.GetCatalog)
+	auto.GET("/catalog/:locationId/list/:listName", auth.Auth, automator.GetLists)
 
 	auto.GET("/:locationId", auth.Auth, automator.GetAutomations)
 	auto.POST("/:locationId", auth.Auth, automator.CreateAutomation)
@@ -109,6 +110,7 @@ func setRoutes(router *gin.Engine) {
 
 	ai.GET("/usage", auth.Auth, svc_openai.ListUsage)
 	ai.GET("/assistants", auth.Auth, svc_openai.ListAssistants)
+	ai.GET("/assistants/:assistantId", auth.Auth, svc_openai.GetAssistant)
 	ai.POST("/assistants", auth.Auth, svc_openai.CreateAssistant)
 	ai.PATCH("/assistants/:assistantId", auth.Auth, svc_openai.UpdateAssistant)
 	ai.DELETE("/assistants/:assistantId", auth.Auth, svc_openai.DeleteAssistant)

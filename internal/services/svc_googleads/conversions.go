@@ -4,6 +4,7 @@ import (
 	"client-runaway-zenoti/internal/db/models"
 	"client-runaway-zenoti/packages/googleads"
 	"fmt"
+	"strings"
 	"time"
 
 	lvn "github.com/Lavina-Tech-LLC/lavinagopackage/v2"
@@ -27,6 +28,31 @@ func GetLocationConversionActions(c *gin.Context) {
 	lvn.GinErr(c, 400, err, "unable to list conversion actions")
 
 	c.Data(lvn.Res(200, actions, "success"))
+}
+
+// GetLocationConversionActions lists conversion actions for the account configured on a location.
+func GetLocationConversionActionsList(l models.Location) (map[string]string, error) {
+
+	cli, err := CliForLocation(l.Id, l.ProfileID)
+	if err != nil {
+		return nil, err
+	}
+	defer cli.Close()
+
+	actions, err := cli.ListConversionActions()
+	if err != nil {
+		return nil, err
+	}
+
+	actionMap := make(map[string]string)
+	for _, action := range actions {
+		// Get everything after last '/' in ResourceName
+		parts := strings.Split(action.ResourceName, "/")
+		id := parts[len(parts)-1]
+		actionMap[action.Name] = id
+	}
+
+	return actionMap, nil
 }
 
 // UploadConversionData uploads offline conversion data for the location's configured account.

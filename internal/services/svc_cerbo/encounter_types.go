@@ -33,3 +33,22 @@ func GetEncounterTypesForLocation(c *gin.Context) {
 
 	c.Data(lvn.Res(200, types, ""))
 }
+
+func GetEncounterTypesList(location models.Location) (map[string]string, error) {
+	cli, err := clientForLocation(location)
+	if err != nil {
+		return nil, err
+	}
+
+	types, err := cli.GetEncounterTypes()
+	if err != nil {
+		return nil, err
+	}
+
+	typeMap := make(map[string]string)
+	for _, t := range types {
+		typeMap[t.Name] = t.EncounterType
+	}
+
+	return typeMap, nil
+}

@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 )
 
 var (
@@ -19,6 +20,7 @@ var (
 		Nodes: []Node{
 			cerboActionFindPatient,
 			cerboActionCreateEncounter,
+			cerboActionUpdateFreeTextNoteSection,
 		},
 	}
 
@@ -58,8 +60,29 @@ var (
 		},
 		Fields: []NodeField{
 			{Key: "patient_id", Type: "string", Required: true},
-			{Key: "encounterType", Type: "string", Required: true},
+			{Key: "encounterType", Type: "string", Required: true, ListFromApi: "cerboEncounterTypes"},
+			{Key: "user", Type: "number", ListFromApi: "cerboUsers"},
 			{Key: "header", Type: "string"},
+			{Key: "content", Type: "string"},
+		},
+	}
+
+	cerboActionUpdateFreeTextNoteSection = Node{
+		Id:          "cerbo.free_text_note.section.update",
+		Title:       "Update section in free-text notes",
+		Description: "Upserts a section into a patient's free-text note.",
+		ExecFunc:    cerboUpdateFreeTextNoteSection,
+		Type:        NodeTypeAction,
+		Icon:        "ri:sticky-note-2-line",
+		Color:       ColorAction,
+		Ports: []NodePort{
+			successPort([]NodeField{}),
+			errorPort,
+		},
+		Fields: []NodeField{
+			{Key: "patientId", Type: "string", Required: true},
+			{Key: "noteTypeId", Type: "number", Required: true, ListFromApi: "cerboFreeTextTypes"},
+			{Key: "header", Type: "string", Required: true},
 			{Key: "content", Type: "string"},
 		},
 	}
@@ -133,15 +156,49 @@ func cerboCreateEncounter(ctx context.Context, fields map[string]interface{}, l 
 		return errorPayload(nil, "encounterType is required")
 	}
 
+	userId := fields["user"].(float64)
+
 	header := strings.TrimSpace(fmt.Sprint(fields["header"]))
 	content := strings.TrimSpace(fmt.Sprint(fields["content"]))
 
-	encounter, err := svc_cerbo.CreateEncounter(l, patientID, encounterType, header, content)
+	req := cerbo.EncounterCreateRequest{
+		EncounterType: strings.TrimSpace(encounterType),
+		Title:         strings.TrimSpace(header),
+		Content:       strings.TrimSpace(content),
+		PatientId:     strings.TrimSpace(patientID),
+		Owner:         uint(userId),
+		DateOfService: time.Now().Format("2006-01-02"),
+	}
+	encounter, err := svc_cerbo.CreateEncounter(l, req)
 	if err != nil {
 		return errorPayload(err, "failed to create encounter")
 	}
 
 	return successPayload(mapCerboEncounterToPayload(encounter))
+}
+
+func cerboUpdateFreeTextNoteSection(ctx context.Context, fields map[string]interface{}, l models.Location) map[string]map[string]interface{} {
+	patientID := strings.TrimSpace(fmt.Sprint(fields["patientId"]))
+	if patientID == "" {
+		return errorPayload(nil, "patientId is required")
+	}
+
+	noteTypeID := fields["noteTypeId"].(float64)
+	if noteTypeID == 0 {
+		return errorPayload(nil, "noteTypeId is required")
+	}
+
+	header := strings.TrimSpace(fmt.Sprint(fields["header"]))
+	if header == "" {
+		return errorPayload(nil, "header is required")
+	}
+	content := strings.TrimSpace(fmt.Sprint(fields["content"]))
+
+	if err := svc_cerbo.UpsertSectionIntoFreeTextNote(l, patientID, uint(noteTypeID), header, content); err != nil {
+		return errorPayload(err, "failed to update free-text note section")
+	}
+
+	return successPayload(map[string]interface{}{})
 }
 
 func mapCerboPatientToPayload(p cerbo.Patient) map[string]interface{} {

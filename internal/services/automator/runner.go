@@ -46,10 +46,15 @@ type (
 		toNodeID string
 	}
 
+	edgeTarget struct {
+		nodeID string
+		edgeID string
+	}
+
 	automationRuntime struct {
 		automation models.Automation
 		nodes      map[string]models.APINode
-		edges      map[string]map[string]edgeRef
+		edges      map[string]map[string][]edgeRef
 		runStatus  *models.AutomationRun
 	}
 
@@ -337,7 +342,7 @@ func newAutomationRuntime(auto models.Automation) *automationRuntime {
 	rt := &automationRuntime{
 		automation: auto,
 		nodes:      make(map[string]models.APINode, len(auto.Graph.Nodes)),
-		edges:      make(map[string]map[string]edgeRef),
+		edges:      make(map[string]map[string][]edgeRef),
 	}
 
 	for _, node := range auto.Graph.Nodes {
@@ -361,12 +366,12 @@ func newAutomationRuntime(auto models.Automation) *automationRuntime {
 		}
 
 		if _, ok := rt.edges[fromID]; !ok {
-			rt.edges[fromID] = make(map[string]edgeRef)
+			rt.edges[fromID] = make(map[string][]edgeRef)
 		}
-		rt.edges[fromID][fromPort] = edgeRef{
+		rt.edges[fromID][fromPort] = append(rt.edges[fromID][fromPort], edgeRef{
 			id:       edge.ID,
 			toNodeID: toID,
-		}
+		})
 	}
 
 	return rt
@@ -481,16 +486,16 @@ func (rt *automationRuntime) startFromEntry(ctx context.Context, entry models.AP
 			}
 			nodePayloads[currentNode.ID][port] = resultPayload
 
-			nextID, edgeID := rt.next(currentNode.ID, port)
-			if nextID != "" {
-				nextNode, ok := rt.nodes[nextID]
+			nextTargets := rt.next(currentNode.ID, port)
+			for _, target := range nextTargets {
+				nextNode, ok := rt.nodes[target.nodeID]
 				if !ok {
-					log.Printf("automator: automation %s references unknown node %s", rt.automation.ID, nextID)
+					log.Printf("automator: automation %s references unknown node %s", rt.automation.ID, target.nodeID)
 					continue
 				}
 				child := &queuedNode{
 					node:           nextNode,
-					incomingEdgeID: edgeID,
+					incomingEdgeID: target.edgeID,
 					incomingPort:   port,
 					parent:         current,
 				}
@@ -502,13 +507,20 @@ func (rt *automationRuntime) startFromEntry(ctx context.Context, entry models.AP
 	return runErr
 }
 
-func (rt *automationRuntime) next(nodeID, port string) (string, string) {
+func (rt *automationRuntime) next(nodeID, port string) []edgeTarget {
 	if nodeEdges, ok := rt.edges[nodeID]; ok {
-		if ref, ok := nodeEdges[port]; ok {
-			return ref.toNodeID, ref.id
+		if refs, ok := nodeEdges[port]; ok {
+			targets := make([]edgeTarget, 0, len(refs))
+			for _, ref := range refs {
+				targets = append(targets, edgeTarget{
+					nodeID: ref.toNodeID,
+					edgeID: ref.id,
+				})
+			}
+			return targets
 		}
 	}
-	return "", ""
+	return nil
 }
 
 func executeNode(ctx context.Context, node models.APINode, payload map[string]interface{}, location models.Location) map[string]map[string]interface{} {

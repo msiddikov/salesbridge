@@ -55,11 +55,30 @@ type (
 	}
 
 	User struct {
-		Id        string `json:"id"`
-		FirstName string `json:"first_name"`
-		LastName  string `json:"last_name"`
-		Prefix    string `json:"prefix"`
-		Email     string `json:"email"`
+		Object                     string    `json:"object"`
+		Id                         string    `json:"id"`
+		FirstName                  string    `json:"first_name"`
+		MiddleName                 string    `json:"middle_name"`
+		LastName                   string    `json:"last_name"`
+		Prefix                     string    `json:"prefix"`
+		Suffix                     string    `json:"suffix"`
+		Npi                        string    `json:"npi"`
+		Email                      string    `json:"email"`
+		IsResource                 bool      `json:"is_resource"`
+		HasCalendar                bool      `json:"has_calendar"`
+		UserNotes                  string    `json:"user_notes"`
+		LoginActive                bool      `json:"login_active"`
+		Active                     bool      `json:"active"`
+		DisplayNameForMessages     *string   `json:"display_name_for_messages"`
+		DisplayNameForAppointments *string   `json:"display_name_for_appointments"`
+		Created                    CerboTime `json:"created"`
+	}
+
+	UsersListResponse struct {
+		Object     string `json:"object"`
+		TotalCount int    `json:"total_count"`
+		HasMore    bool   `json:"has_more"`
+		Data       []User `json:"data"`
 	}
 
 	PatientSearchParams struct {
@@ -93,10 +112,17 @@ type (
 
 	EncounterCreateRequest struct {
 		PatientId     string `json:"pt_id,omitempty"`
+		Owner         uint   `json:"owner,omitempty"`
 		DateOfService string `json:"date_of_service,omitempty"`
 		Title         string `json:"title,omitempty"`
 		Content       string `json:"content,omitempty"`
 		EncounterType string `json:"encounter_type,omitempty"`
+	}
+
+	PtNoteType struct {
+		Id        uint
+		Name      string
+		Rich_text bool
 	}
 
 	CerboTime struct {

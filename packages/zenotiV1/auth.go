@@ -78,8 +78,9 @@ func (a *Client) fetch(r reqParams, data interface{}) (http.Response, []byte, er
 	}
 
 	if res.StatusCode == 429 {
-		fmt.Println("cooling down zenoti for 40s...")
-		time.Sleep(40 * time.Second)
+		retryAfter, _ := strconv.ParseFloat(string(res.Header.Get("Retry-After")), 32)
+		fmt.Printf("cooling down zenoti for %v\n", time.Duration(retryAfter)*time.Second)
+		time.Sleep(time.Duration(retryAfter) * time.Second)
 		return a.fetch(r, data)
 	}
 
