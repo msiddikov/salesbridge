@@ -29,8 +29,7 @@ type OpenAIUsageDaily struct {
 	UsageDate    time.Time `gorm:"index:idx_openai_usage_profile_model_date,unique"`
 	InputTokens  int       `gorm:"not null;default:0"`
 	OutputTokens int       `gorm:"not null;default:0"`
-	CostCents    float64   `gorm:"not null;default:0"`
-	Points       float64   `gorm:"not null;default:0"`
+	Credits      float64   `gorm:"not null;default:0"`
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
 }

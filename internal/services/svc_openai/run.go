@@ -155,8 +155,7 @@ func recordAIUsage(profileID uint, model string, usage openaiv1.ResponseUsage) e
 		UsageDate:    usageDate,
 		InputTokens:  usage.InputTokens + usage.PromptTokens,
 		OutputTokens: usage.OutputTokens + usage.CompletionTokens,
-		CostCents:    costCents,
-		Points:       costCents,
+		Credits:      costCents,
 	}
 
 	tbl := "open_ai_usage_dailies"

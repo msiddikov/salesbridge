@@ -15,8 +15,7 @@ type usageResponse struct {
 	Model        string  `json:"model"`
 	InputTokens  int     `json:"inputTokens"`
 	OutputTokens int     `json:"outputTokens"`
-	CostCents    float64 `json:"costCents"`
-	Points       float64 `json:"points"`
+	Credits      float64 `json:"credits"`
 }
 
 func ListUsage(c *gin.Context) {
@@ -47,8 +46,7 @@ func ListUsage(c *gin.Context) {
 			Model:        u.Model,
 			InputTokens:  u.InputTokens,
 			OutputTokens: u.OutputTokens,
-			CostCents:    u.CostCents,
-			Points:       u.Points,
+			Credits:      u.Credits,
 		})
 	}
 
