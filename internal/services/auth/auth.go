@@ -18,7 +18,7 @@ func Auth(c *gin.Context) {
 	}
 
 	user := models.User{}
-	result := models.DB.Where("email = ? AND password = ?", email, password).Preload("Profile").Preload("Profile.Locations").First(&user)
+	result := models.DB.Where("email = ? AND password = ?", email, password).Preload("Profile").First(&user)
 	if result.Error != nil {
 		c.Data(lvn.Res(400, "", "Incorrect email or password"))
 		c.Abort()

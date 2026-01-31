@@ -42,8 +42,6 @@ func Listen() {
 	// chat stuff
 	setChatRoutes(router)
 	setReportRoutes(router)
-	setAuthRoutes(router)
-	setSettingsRoutes(router)
 	setSurveyRoutes(router)
 	setRunwayRoutes(router)
 	setChatlyRoutes(router)

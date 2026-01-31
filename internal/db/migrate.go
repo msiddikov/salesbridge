@@ -114,6 +114,15 @@ func Migrate() {
 		panic(err)
 	}
 
+	// MCP API Keys
+	err = DB.AutoMigrate(
+		&models.MCPApiKey{},
+		&models.MCPApiKeyLocation{},
+	)
+	if err != nil {
+		panic(err)
+	}
+
 	defContact := models.Contact{
 		LocationId:    "0",
 		ContactId:     "0",

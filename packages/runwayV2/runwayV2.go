@@ -80,11 +80,12 @@ func (c *Client) GetCreated() time.Time {
 	return c.cfg.created
 }
 
-func (s *Service) GetOauthLink(redirectEndPoint string) string {
-	url := fmt.Sprintf(`https://marketplace.gohighlevel.com/oauth/chooselocation?response_type=code&redirect_uri=%s&client_id=%s&scope=%s`,
+func (s *Service) GetOauthLink(redirectEndPoint, state string) string {
+	url := fmt.Sprintf(`https://marketplace.gohighlevel.com/oauth/chooselocation?response_type=code&redirect_uri=%s&client_id=%s&scope=%s&state=%s`,
 		s.ServerDomain+redirectEndPoint,
 		s.ClientId,
 		s.Scope,
+		state,
 	)
 	return url
 }

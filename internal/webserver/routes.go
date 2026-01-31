@@ -11,6 +11,7 @@ import (
 	"client-runaway-zenoti/internal/services/svc_ghl"
 	"client-runaway-zenoti/internal/services/svc_googleads"
 	svc_jpmreport "client-runaway-zenoti/internal/services/svc_jpmReport"
+	"client-runaway-zenoti/internal/services/svc_mcp"
 	"client-runaway-zenoti/internal/services/svc_openai"
 	"client-runaway-zenoti/internal/services/svc_zenoti"
 
@@ -30,6 +31,7 @@ func setRoutes(router *gin.Engine) {
 	// Auth routes
 	router.POST("/register", auth.Register)
 	router.GET("/login", auth.Auth, auth.Login)
+	router.GET("/auth/hl", svc_ghl.AddLocationAuthHandler)
 
 	// Automations routes
 	auto := router.Group("/auto")
@@ -59,20 +61,27 @@ func setRoutes(router *gin.Engine) {
 	ghl.GET("/:locationId/pipelines", auth.Auth, svc_ghl.GetPipelines)
 	ghl.POST("/webhookv2", svc_ghl.WebhookAuthMiddle, svc_ghl.WebhookHandler)
 
-	// Settings routes
+	// Zenoti API Settings
 	settings := router.Group("/settings")
 	settings.GET("/zenoti/apis", auth.Auth, svc_config.GetZenotiApis)
 	settings.POST("/zenoti/apis", auth.Auth, svc_config.CreateZenotiApi)
 	settings.PATCH("/zenoti/apis/:zenotiApiId", auth.Auth, svc_config.UpdateZenotiApi)
 	settings.DELETE("/zenoti/apis/:zenotiApiId", auth.Auth, svc_config.DeleteZenotiApi)
 
+	// Cerbo API Settings
 	settings.GET("/cerbo/apis", auth.Auth, svc_config.GetCerboApis)
 	settings.POST("/cerbo/apis", auth.Auth, svc_config.CreateCerboApi)
 	settings.PATCH("/cerbo/apis/:cerboApiId", auth.Auth, svc_config.UpdateCerboApi)
 	settings.DELETE("/cerbo/apis/:cerboApiId", auth.Auth, svc_config.DeleteCerboApi)
 
+	// Locations Settings
+	settings.GET("/locations/list", auth.Auth, svc_config.ListLocations)
 	settings.PATCH("/locations/:locationId", auth.Auth, svc_config.UpdateLocation)
+	settings.DELETE("/locations/:locationId", auth.Auth, svc_config.DeleteLocation)
+	settings.GET("/locations/:locationId/delete-preview", auth.Auth, svc_config.DeleteLocationDryRun)
+	settings.GET("/oauth/link", auth.Auth, svc_ghl.GetGhlOauthLink)
 
+	// Attribution Flows settings
 	settings.POST("/flows", auth.Auth, svc_attribution.CreateAttributionFlow)
 	settings.GET("/flows", auth.Auth, svc_attribution.GetAttributionFlows)
 	settings.DELETE("/flows/:flowId", auth.Auth, svc_attribution.DeleteAttributionFlow)
@@ -114,5 +123,14 @@ func setRoutes(router *gin.Engine) {
 	ai.POST("/assistants", auth.Auth, svc_openai.CreateAssistant)
 	ai.PATCH("/assistants/:assistantId", auth.Auth, svc_openai.UpdateAssistant)
 	ai.DELETE("/assistants/:assistantId", auth.Auth, svc_openai.DeleteAssistant)
+
+	// MCP API Key management
+	mcpKeys := router.Group("/mcp/keys")
+	mcpKeys.POST("", auth.Auth, svc_mcp.CreateAPIKey)
+	mcpKeys.GET("", auth.Auth, svc_mcp.ListAPIKeys)
+	mcpKeys.PATCH("/:keyId", auth.Auth, svc_mcp.UpdateAPIKey)
+	mcpKeys.PATCH("/:keyId/revoke", auth.Auth, svc_mcp.RevokeAPIKey)
+	mcpKeys.POST("/:keyId/regenerate", auth.Auth, svc_mcp.RegenerateAPIKey)
+	mcpKeys.DELETE("/:keyId", auth.Auth, svc_mcp.DeleteAPIKey)
 
 }

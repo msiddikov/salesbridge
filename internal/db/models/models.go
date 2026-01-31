@@ -97,11 +97,11 @@ type (
 		// Zenoti Integration
 		ZenotiCenterId   string
 		ZenotiCenterName string
-		ZenotiApiObjId   uint
+		ZenotiApiObjId   *uint `gorm:"default:null"`
 		ZenotiApiObj     ZenotiApi
 
 		//Cerbo Integration
-		CerboApiObjId uint
+		CerboApiObjId *uint `gorm:"default:null"`
 		CerboApiObj   CerboApi
 	}
 

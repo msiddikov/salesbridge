@@ -90,7 +90,7 @@ func OAuthCallback(c *gin.Context) {
 		return
 	}
 
-	redirectURL := config.Confs.Settings.SrvDomain + "/oauth/callback?google_ads_connected=true"
+	redirectURL := config.Confs.Settings.AppDomain + "/oauth/callback?google_ads_connected=true"
 	c.Redirect(http.StatusFound, redirectURL)
 }
 

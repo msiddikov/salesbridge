@@ -43,12 +43,12 @@ func CreateEncounter(location models.Location, req cerbo.EncounterCreateRequest)
 }
 
 func clientForLocation(location models.Location) (cerbo.Client, error) {
-	if location.CerboApiObjId == 0 {
+	if location.CerboApiObjId == nil || *location.CerboApiObjId == 0 {
 		return cerbo.Client{}, fmt.Errorf("cerbo api is not configured")
 	}
 
 	var api models.CerboApi
-	if err := db.DB.First(&api, "id = ?", location.CerboApiObjId).Error; err != nil {
+	if err := db.DB.First(&api, "id = ?", *location.CerboApiObjId).Error; err != nil {
 		return cerbo.Client{}, err
 	}
 

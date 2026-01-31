@@ -19,7 +19,6 @@ func setSettingsRoutes(router *gin.Engine) {
 	router.GET("/settings/locations", allLocations)
 	router.GET("/settings/locations/:id", locationInfo)
 	router.POST("/settings/locations/:id", saveLocation)
-	router.GET("/settings/oauthLinks", getRunwayAuthLink)
 	router.GET("/settings/workflows/:id", getWorkflows)
 	router.GET("/settings/zenoti-centers/:api", getCenters)
 	router.GET("/settings/zenoti-centers/:api/:centerid/services", getCenterServices)
@@ -60,17 +59,6 @@ func locationInfo(c *gin.Context) {
 	}
 
 	c.Data(lvn.Res(200, info, "OK"))
-}
-
-func getRunwayAuthLink(c *gin.Context) {
-	res := struct {
-		Url    string
-		Update string
-	}{
-		Url:    runway.GetOauthLink("/auth/hl"),
-		Update: runway.GetOauthLink("/auth/hl/update"),
-	}
-	c.Data(lvn.Res(200, res, "OK"))
 }
 
 func saveLocation(c *gin.Context) {

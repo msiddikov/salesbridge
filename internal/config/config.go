@@ -23,6 +23,7 @@ type (
 	Settings struct {
 		SrvAddress   string
 		SrvDomain    string
+		AppDomain    string
 		Cert         string
 		Key          string
 		ClientId     string

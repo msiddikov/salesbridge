@@ -63,9 +63,14 @@ func gaUploadConversionData(ctx context.Context, fields map[string]interface{}, 
 		return errorPayload(err, "googleAdsActionId is required")
 	}
 
+	gclid, ok := fields["gclid"].(string)
+	if !ok || gclid == "" {
+		return errorPayload(err, "gclid is required")
+	}
+
 	req := googleads.ConversionRequest{
 		ConversionActionID: actionId,
-		Gclid:              fields["gclid"].(string),
+		Gclid:              gclid,
 		EventTime:          eventTime,
 		ConversionValue:    value,
 		OrderId:            fields["orderId"].(string),

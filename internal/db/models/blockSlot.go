@@ -52,9 +52,9 @@ func (b *BlockSlot) BeforeDelete(tx *gorm.DB) (err error) {
 		return err
 	}
 
-	err = client.CalendarDeleteEvent(b.Id)
+	client.CalendarDeleteEvent(b.Id)
 
-	return err
+	return nil
 }
 
 func BlockSlotHasDuplicates(blocks []BlockSlot) (hasDuplicates bool, res []BlockSlot) {

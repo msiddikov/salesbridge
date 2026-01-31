@@ -74,7 +74,3 @@ func LocationInfo(locationId string) (models.LocationInfo, error) {
 	info.Location = loc
 	return info, err
 }
-
-func GetOauthLink(endpoint string) string {
-	return svc.GetOauthLink(endpoint)
-}
