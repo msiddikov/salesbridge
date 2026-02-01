@@ -21,6 +21,7 @@ import (
 func setRoutes(router *gin.Engine) {
 	// GHL Trigger
 	router.POST("/hl/trigger", runway.TriggerSubscriptionsHandler)
+	router.POST("/hl/webhookv2", svc_ghl.WebhookAuthMiddle, svc_ghl.WebhookHandler)
 
 	// Cerbo webhooks
 	router.POST("/cerbo/webhook/:secret", cerbo.WebhookHandler)
@@ -59,7 +60,6 @@ func setRoutes(router *gin.Engine) {
 	// GHL Routes
 	ghl := router.Group("/ghl")
 	ghl.GET("/:locationId/pipelines", auth.Auth, svc_ghl.GetPipelines)
-	ghl.POST("/webhookv2", svc_ghl.WebhookAuthMiddle, svc_ghl.WebhookHandler)
 
 	// Zenoti API Settings
 	settings := router.Group("/settings")

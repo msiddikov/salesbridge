@@ -2,6 +2,7 @@ package svc_ghl
 
 import (
 	"bytes"
+	"client-runaway-zenoti/internal/config"
 	"crypto"
 	"crypto/rsa"
 	"crypto/sha256"
@@ -10,6 +11,7 @@ import (
 	"encoding/pem"
 	"errors"
 	"io"
+	"net/http"
 	"strings"
 	"sync"
 
@@ -63,7 +65,19 @@ func getGHLPublicKey() (*rsa.PublicKey, error) {
 
 func WebhookHandler(c *gin.Context) {
 
+	// transfer the body to a dev server for testing if this is a production deployment
+	body, _ := io.ReadAll(c.Request.Body)
+	transferToDevServer(body)
+
+	// respond with 200 OK to GHL
 	c.Data(lvn.Res(200, "Success", "ok"))
+}
+
+func transferToDevServer(body []byte) {
+	if config.Confs.Settings.SrvAddress == "salesbridge-api.lavina.tech" {
+
+		http.Post("https://mason.lavina.uz/hl/webhookv2", "application/json", bytes.NewBuffer(body))
+	}
 }
 
 func WebhookAuthMiddle(c *gin.Context) {
