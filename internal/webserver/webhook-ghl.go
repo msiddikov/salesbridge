@@ -17,7 +17,7 @@ import (
 func ghlWebhookHandler(c *gin.Context) {
 
 	genericPayload := runwayv2.WebhookGenericPayload{}
-	//xWhSignature := c.GetHeader("x-wh-signature")
+	xWhSignature := c.GetHeader("x-wh-signature")
 
 	body, _ := io.ReadAll(c.Request.Body)
 	err := json.Unmarshal(body, &genericPayload)
@@ -29,7 +29,7 @@ func ghlWebhookHandler(c *gin.Context) {
 	switch genericPayload.Type {
 	case "AppointmentUpdate":
 		automator.GhlTriggerAppointmentUpdated(context.Background(), body)
-		//transferToDevServer(body, xWhSignature)
+		transferToDevServer(body, xWhSignature)
 	case "ContactCreate":
 	}
 

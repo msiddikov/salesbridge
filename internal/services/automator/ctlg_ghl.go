@@ -54,9 +54,10 @@ var (
 	ghlAppointmentStatusFilters = []string{
 		"confirmed",
 		"cancelled",
-		"pending",
-		"no_show",
-		"completed",
+		"showed",
+		"noshow",
+		"invalid",
+		"unconfirmed",
 	}
 
 	//////////////////////////////////////////////////
