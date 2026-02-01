@@ -167,8 +167,7 @@ func recordAIUsage(profileID uint, model string, usage openaiv1.ResponseUsage) e
 		DoUpdates: clause.Assignments(map[string]interface{}{
 			"input_tokens":  gorm.Expr(tbl + ".input_tokens + EXCLUDED.input_tokens"),
 			"output_tokens": gorm.Expr(tbl + ".output_tokens + EXCLUDED.output_tokens"),
-			"cost_cents":    gorm.Expr(tbl + ".cost_cents + EXCLUDED.cost_cents"),
-			"points":        gorm.Expr(tbl + ".points + EXCLUDED.points"),
+			"credits":       gorm.Expr(tbl + ".credits + EXCLUDED.credits"),
 			"updated_at":    time.Now().UTC(),
 		}),
 	}).Create(&record).Error
