@@ -74,8 +74,7 @@ func WebhookHandler(c *gin.Context) {
 }
 
 func transferToDevServer(body []byte) {
-	if config.Confs.Settings.SrvAddress == "salesbridge-api.lavina.tech" {
-
+	if config.Confs.Settings.SrvDomain == "https://salesbridge-api.lavina.tech" {
 		http.Post("https://mason.lavina.uz/hl/webhookv2", "application/json", bytes.NewBuffer(body))
 	}
 }
