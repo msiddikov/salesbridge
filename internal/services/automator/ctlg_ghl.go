@@ -57,7 +57,7 @@ var (
 		"showed",
 		"noshow",
 		"invalid",
-		"unconfirmed",
+		"new",
 	}
 
 	//////////////////////////////////////////////////
@@ -739,7 +739,7 @@ func GhlTriggerAppointmentUpdated(ctx context.Context, bodyBytes []byte) error {
 		Port:        "out",
 		Payload:     map[string]interface{}{},
 		Filters: map[string]interface{}{
-			"status": body.Appointment.AppointmentStatus,
+			"appointmentStatus": body.Appointment.AppointmentStatus,
 		},
 	}
 	triggerInput.Payload = mapGhlAppointmentToPayload(body.Appointment)

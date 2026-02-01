@@ -393,7 +393,7 @@ func (rt *automationRuntime) entryNodesForTypeWithFilter(input TriggerInput) []m
 		// Check filters
 		matchesFilters := true
 		for key, val := range input.Filters {
-			nodeVal, ok := node.Config[key]
+			nodeVal, ok := node.Config["default"][key]
 			if !ok {
 				continue
 			}
