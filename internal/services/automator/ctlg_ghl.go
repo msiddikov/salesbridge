@@ -90,7 +90,7 @@ var (
 			},
 		},
 		Fields: []NodeField{
-			{Key: "status", Label: "Appointment Status", Type: "string", Required: false, SelectOptions: ghlAppointmentStatusFilters},
+			{Key: "appointmentStatus", Label: "Appointment Status", Type: "string", Required: false, SelectOptions: ghlAppointmentStatusFilters},
 		},
 	}
 
