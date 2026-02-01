@@ -249,6 +249,12 @@ type (
 		DateAdded         string `json:"dateAdded"`
 		DateUpdated       string `json:"dateUpdated"`
 	}
+
+	WebhookGenericPayload struct {
+		Type       string `json:"type,omitempty"`
+		LocationId string `json:"locationId,omitempty"`
+		Timestamp  string `json:"timestamp,omitempty"`
+	}
 )
 
 // MarshalJSON implements custom JSON marshaling for Filter so that the

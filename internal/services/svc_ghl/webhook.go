@@ -2,7 +2,6 @@ package svc_ghl
 
 import (
 	"bytes"
-	"client-runaway-zenoti/internal/config"
 	"crypto"
 	"crypto/rsa"
 	"crypto/sha256"
@@ -10,8 +9,8 @@ import (
 	"encoding/base64"
 	"encoding/pem"
 	"errors"
+	"fmt"
 	"io"
-	"net/http"
 	"strings"
 	"sync"
 
@@ -63,22 +62,6 @@ func getGHLPublicKey() (*rsa.PublicKey, error) {
 	return ghlPublicKey, ghlPublicKeyErr
 }
 
-func WebhookHandler(c *gin.Context) {
-
-	// transfer the body to a dev server for testing if this is a production deployment
-	body, _ := io.ReadAll(c.Request.Body)
-	transferToDevServer(body)
-
-	// respond with 200 OK to GHL
-	c.Data(lvn.Res(200, "Success", "ok"))
-}
-
-func transferToDevServer(body []byte) {
-	if config.Confs.Settings.SrvDomain == "https://salesbridge-api.lavina.tech" {
-		http.Post("https://mason.lavina.uz/hl/webhookv2", "application/json", bytes.NewBuffer(body))
-	}
-}
-
 func WebhookAuthMiddle(c *gin.Context) {
 	signature := strings.TrimSpace(c.GetHeader("x-wh-signature"))
 	if signature == "" {
@@ -86,6 +69,7 @@ func WebhookAuthMiddle(c *gin.Context) {
 		c.Abort()
 		return
 	}
+	fmt.Printf("signature: %s\n", signature)
 
 	body, err := c.GetRawData()
 	if err != nil {
@@ -109,6 +93,7 @@ func WebhookAuthMiddle(c *gin.Context) {
 		c.Abort()
 		return
 	}
+	fmt.Printf("signature: %s\n", signature)
 
 	hash := sha256.Sum256(body)
 	if err := rsa.VerifyPKCS1v15(pubKey, crypto.SHA256, hash[:], sigBytes); err != nil {

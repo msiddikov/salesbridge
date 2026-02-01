@@ -21,7 +21,7 @@ import (
 func setRoutes(router *gin.Engine) {
 	// GHL Trigger
 	router.POST("/hl/trigger", runway.TriggerSubscriptionsHandler)
-	router.POST("/hl/webhookv2", svc_ghl.WebhookAuthMiddle, svc_ghl.WebhookHandler)
+	router.POST("/hl/webhookv2", svc_ghl.WebhookAuthMiddle, ghlWebhookHandler)
 
 	// Cerbo webhooks
 	router.POST("/cerbo/webhook/:secret", cerbo.WebhookHandler)
