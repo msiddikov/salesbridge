@@ -6,10 +6,13 @@ import (
 	"client-runaway-zenoti/internal/services/svc_cerbo"
 	"client-runaway-zenoti/internal/services/svc_googleads"
 	"client-runaway-zenoti/internal/services/svc_openai"
+	"client-runaway-zenoti/packages/grafana"
 	"context"
 	"encoding/csv"
 	"errors"
 	"fmt"
+	"log"
+	"runtime/debug"
 	"sort"
 	"strconv"
 	"strings"
@@ -17,6 +20,7 @@ import (
 
 	lvn "github.com/Lavina-Tech-LLC/lavinagopackage/v2"
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
@@ -328,8 +332,16 @@ func StartFromAutomationRun(c *gin.Context) {
 
 	var run models.AutomationRun
 	err := db.DB.First(&run, "id = ?", runId).Error
-	lvn.GinErr(c, 400, err, "Could not retrieve automation")
+	lvn.GinErr(c, 400, err, "Could not retrieve automation run")
 
+	// Check if this is a batch run (collection-based) or trigger-based run
+	if run.BatchRunID != nil {
+		// Collection-based run - need to start from collection node
+		restartCollectionRun(c, run)
+		return
+	}
+
+	// Trigger-based run - use the original logic
 	TriggerInput := TriggerInput{
 		LocationID:  run.LocationID,
 		TriggerType: run.TriggerType,
@@ -341,6 +353,108 @@ func StartFromAutomationRun(c *gin.Context) {
 	lvn.GinErr(c, 500, err, "Error starting automation from run")
 
 	c.Data(lvn.Res(200, "Automation started", ""))
+}
+
+func restartCollectionRun(c *gin.Context, originalRun models.AutomationRun) {
+	// Find the batch run to get the node ID
+	var batchRun models.AutomationBatchRun
+	err := db.DB.First(&batchRun, "id = ?", *originalRun.BatchRunID).Error
+	if err != nil {
+		lvn.GinErr(c, 404, err, "Batch run not found")
+		return
+	}
+
+	// Load the node with automation
+	var dbNode models.Node
+	err = db.DB.
+		Preload("Automation").
+		Preload("Automation.Location").
+		Preload("Automation.Location.ZenotiApiObj").
+		Where("id = ?", batchRun.NodeID).
+		First(&dbNode).Error
+	if err != nil {
+		lvn.GinErr(c, 404, err, "Collection node not found")
+		return
+	}
+
+	// Find the API node from the graph
+	var node models.APINode
+	for _, n := range dbNode.Automation.Graph.Nodes {
+		if n.ID == dbNode.ID {
+			node = n
+			break
+		}
+	}
+
+	catalogNode, ok := getCatalogNode(node.Type)
+	if !ok {
+		lvn.GinErr(c, 500, errors.New("catalog node not found"), "Catalog node not found for type: "+node.Type)
+		return
+	}
+
+	// Create new automation run
+	ctx := context.Background()
+	automation := dbNode.Automation
+
+	payload := originalRun.TriggerPayload
+	payloads := make(map[string]map[string]interface{})
+	portName := originalRun.TriggerPort
+	if portName == "" && len(catalogNode.Ports) > 0 {
+		portName = catalogNode.Ports[0].Name
+	}
+	payloads[portName] = payload
+
+	runtime := newAutomationRuntime(automation)
+	runtime.runStatus = &models.AutomationRun{
+		ID:             uuid.New().String(),
+		AutomationID:   automation.ID,
+		BatchRunID:     originalRun.BatchRunID,
+		LocationID:     automation.LocationId,
+		Status:         models.RunRunning,
+		TriggerType:    node.Type,
+		TriggerPayload: payload,
+		TriggerPort:    portName,
+		StartedAt:      time.Now(),
+		RunNodes:       []models.AutomationRunNode{},
+	}
+
+	db.DB.Save(&runtime.runStatus)
+
+	locName := dbNode.Automation.Location.Name
+	locId := dbNode.Automation.LocationId
+
+	// Run in background
+	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				stack := string(debug.Stack())
+				errMsg := fmt.Sprintf("automation run panic: %v\n%s", r, stack)
+				log.Printf("PANIC in automation run %s: %v\n%s", runtime.runStatus.ID, r, stack)
+
+				grafana.Notify(locName, locId, "automation-run-error", errMsg)
+
+				finishedAt := time.Now()
+				runtime.runStatus.CompletedAt = &finishedAt
+				runtime.runStatus.Status = models.RunFailed
+				runtime.runStatus.ErrorMessage = fmt.Sprintf("panic: %v", r)
+				db.DB.Save(&runtime.runStatus)
+			}
+		}()
+
+		runResultErr := runtime.startFromEntry(ctx, node, payloads)
+		finishedAt := time.Now()
+
+		runtime.runStatus.CompletedAt = &finishedAt
+		if runResultErr != nil {
+			runtime.runStatus.Status = models.RunFailed
+			runtime.runStatus.ErrorMessage = runResultErr.Error()
+		} else {
+			runtime.runStatus.Status = models.RunSuccess
+		}
+		db.DB.Save(&runtime.runStatus)
+	}()
+
+	c.Data(lvn.Res(200, runtime.runStatus, "Automation run restarted"))
 }
 
 func StartTriggerForAutomation(c *gin.Context) {

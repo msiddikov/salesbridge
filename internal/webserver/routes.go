@@ -56,6 +56,7 @@ func setRoutes(router *gin.Engine) {
 	auto.GET("/batch-runs/:locationId", auth.Auth, automator.GetBatchRuns)
 	auto.GET("/batch-run/:batchRunId", auth.Auth, automator.GetBatchRunDetails)
 	auto.PATCH("/batch-run/:batchRunId/cancel", auth.Auth, automator.CancelBatchRun)
+	auto.POST("/runs/restart", auth.Auth, automator.RestartMultipleAutomationRuns)
 
 	// GHL Routes
 	ghl := router.Group("/ghl")

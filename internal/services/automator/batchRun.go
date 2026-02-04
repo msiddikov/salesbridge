@@ -3,9 +3,12 @@ package automator
 import (
 	"client-runaway-zenoti/internal/db"
 	"client-runaway-zenoti/internal/db/models"
+	"client-runaway-zenoti/packages/grafana"
 	"context"
 	"errors"
 	"fmt"
+	"log"
+	"runtime/debug"
 	"strconv"
 	"sync"
 	"time"
@@ -51,6 +54,26 @@ func StartBatchRun(c *gin.Context) {
 
 	go func() {
 		defer func() {
+			if r := recover(); r != nil {
+				stack := string(debug.Stack())
+				errMsg := fmt.Sprintf("batch run panic: %v\n%s", r, stack)
+				log.Printf("PANIC in batch run %s: %v\n%s", batchRun.ID, r, stack)
+
+				// Log to Grafana
+				grafana.Notify(
+					dbNode.Automation.Location.Name,
+					dbNode.Automation.LocationId,
+					"batch-run-error",
+					errMsg,
+				)
+
+				// Update batch run status to failed
+				now := time.Now()
+				batchRun.Status = models.BatchRunFailed
+				batchRun.ErrorMessage = fmt.Sprintf("panic: %v", r)
+				batchRun.CompletedAt = &now
+				db.DB.Save(&batchRun)
+			}
 			cancel()
 			unregisterBatchRunCancel(batchRun.ID)
 		}()
@@ -313,4 +336,141 @@ func unregisterBatchRunCancel(batchRunID string) {
 		return
 	}
 	batchRunCancels.Delete(batchRunID)
+}
+
+// RestartMultipleAutomationRuns restarts multiple automation runs from a batch run
+func RestartMultipleAutomationRuns(c *gin.Context) {
+	var request struct {
+		RunIDs []string `json:"runIds"`
+	}
+	err := c.BindJSON(&request)
+	lvn.GinErr(c, 400, err, "Invalid request body")
+
+	if len(request.RunIDs) == 0 {
+		lvn.GinErr(c, 400, errors.New("runIds required"), "runIds array is required")
+		return
+	}
+
+	// Find all automation runs
+	var runs []models.AutomationRun
+	err = db.DB.Where("id IN ?", request.RunIDs).Find(&runs).Error
+	lvn.GinErr(c, 500, err, "Error getting automation runs")
+
+	if len(runs) == 0 {
+		lvn.GinErr(c, 404, errors.New("no runs found"), "No automation runs found")
+		return
+	}
+
+	// Group runs by batch run ID for efficiency
+	runsByBatchID := make(map[string][]models.AutomationRun)
+	for _, run := range runs {
+		if run.BatchRunID == nil {
+			continue
+		}
+		runsByBatchID[*run.BatchRunID] = append(runsByBatchID[*run.BatchRunID], run)
+	}
+
+	var restartedRuns []models.AutomationRun
+
+	for batchRunID, batchRuns := range runsByBatchID {
+		// Find the batch run
+		var batchRun models.AutomationBatchRun
+		err = db.DB.First(&batchRun, "id = ?", batchRunID).Error
+		if err != nil {
+			continue
+		}
+
+		// Load the node with automation
+		var dbNode models.Node
+		err = db.DB.
+			Preload("Automation").
+			Preload("Automation.Location").
+			Preload("Automation.Location.ZenotiApiObj").
+			Where("id = ?", batchRun.NodeID).
+			First(&dbNode).Error
+		if err != nil {
+			continue
+		}
+
+		// Find the API node
+		var node models.APINode
+		for _, n := range dbNode.Automation.Graph.Nodes {
+			if n.ID == dbNode.ID {
+				node = n
+				break
+			}
+		}
+
+		catalogNode, ok := getCatalogNode(node.Type)
+		if !ok {
+			continue
+		}
+
+		automation := dbNode.Automation
+
+		// Restart each run
+		for _, originalRun := range batchRuns {
+			payload := originalRun.TriggerPayload
+			payloads := make(map[string]map[string]interface{})
+			portName := originalRun.TriggerPort
+			if portName == "" && len(catalogNode.Ports) > 0 {
+				portName = catalogNode.Ports[0].Name
+			}
+			payloads[portName] = payload
+
+			runtime := newAutomationRuntime(automation)
+			runtime.runStatus = &models.AutomationRun{
+				ID:             uuid.New().String(),
+				AutomationID:   automation.ID,
+				BatchRunID:     originalRun.BatchRunID,
+				LocationID:     automation.LocationId,
+				Status:         models.RunRunning,
+				TriggerType:    node.Type,
+				TriggerPayload: payload,
+				TriggerPort:    portName,
+				StartedAt:      time.Now(),
+				RunNodes:       []models.AutomationRunNode{},
+			}
+
+			db.DB.Save(&runtime.runStatus)
+			restartedRuns = append(restartedRuns, *runtime.runStatus)
+
+			// Run in background
+			go func(rt *automationRuntime, n models.APINode, p map[string]map[string]interface{}, locName, locId string) {
+				defer func() {
+					if r := recover(); r != nil {
+						stack := string(debug.Stack())
+						errMsg := fmt.Sprintf("automation run panic: %v\n%s", r, stack)
+						log.Printf("PANIC in automation run %s: %v\n%s", rt.runStatus.ID, r, stack)
+
+						grafana.Notify(locName, locId, "automation-run-error", errMsg)
+
+						finishedAt := time.Now()
+						rt.runStatus.CompletedAt = &finishedAt
+						rt.runStatus.Status = models.RunFailed
+						rt.runStatus.ErrorMessage = fmt.Sprintf("panic: %v", r)
+						db.DB.Save(&rt.runStatus)
+					}
+				}()
+
+				ctx := context.Background()
+				runResultErr := rt.startFromEntry(ctx, n, p)
+				finishedAt := time.Now()
+
+				rt.runStatus.CompletedAt = &finishedAt
+				if runResultErr != nil {
+					rt.runStatus.Status = models.RunFailed
+					rt.runStatus.ErrorMessage = runResultErr.Error()
+				} else {
+					rt.runStatus.Status = models.RunSuccess
+				}
+				db.DB.Save(&rt.runStatus)
+			}(runtime, node, payloads, dbNode.Automation.Location.Name, dbNode.Automation.LocationId)
+		}
+	}
+
+	c.Data(lvn.Res(200, gin.H{
+		"restartedCount": len(restartedRuns),
+		"runs":           restartedRuns,
+	}, "Automation runs restarted"))
 }

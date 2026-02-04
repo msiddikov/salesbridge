@@ -19,6 +19,13 @@ type (
 		RC        RingCentral
 		DB        gormDB
 		GAjson    string
+		Grafana   GrafanaConfig
+	}
+
+	GrafanaConfig struct {
+		Endpoint string
+		UserID   string
+		APIKey   string
 	}
 	Settings struct {
 		SrvAddress   string

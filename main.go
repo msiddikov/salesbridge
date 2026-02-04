@@ -2,6 +2,7 @@ package main
 
 import (
 	webServer "client-runaway-zenoti/internal/webserver"
+	"client-runaway-zenoti/packages/grafana"
 
 	integrations_zenoti "client-runaway-zenoti/internal/integrations/zenoti"
 
@@ -9,6 +10,8 @@ import (
 )
 
 func main() {
+	grafana.Init()
+
 	go webServer.Listen()
 
 	//runaway.UpdateLocations()
