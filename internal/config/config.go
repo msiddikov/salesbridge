@@ -43,10 +43,23 @@ type (
 		GoogleAdsClientSecret string
 		GoogleAdsRedirectUrl  string
 
-		OpenAIAPIKey       string
-		OpenAIBaseURL      string
-		OpenAIOrganization string
-		OpenAIProject      string
+		OpenAIAPIKey         string
+		OpenAIInternalAPIKey string
+		OpenAIBaseURL        string
+		OpenAIOrganization   string
+		OpenAIProject        string
+
+		// Internal Assistant IDs (four agents)
+		InternalOrchestratorID string // Routes requests to appropriate agent
+		InternalBuilderID      string // Helps build automations
+		InternalValidatorID    string // Validates and reviews automations
+		InternalHelperID       string // Answers questions and finds info
+
+		// Deprecated: use specific agent IDs above
+		InternalAssistantID string
+
+		MCPInternalAPIKey string
+		MCPURL            string
 
 		CRAgencyAPI string
 	}

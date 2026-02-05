@@ -99,7 +99,7 @@ func Migrate() {
 		panic(err)
 	}
 
-	err = DB.AutoMigrate(&models.OpenAIAssistant{}, &models.OpenAIModelPricing{}, &models.OpenAIUsageDaily{})
+	err = DB.AutoMigrate(&models.OpenAIAssistant{}, &models.InternalAssistantThread{}, &models.OpenAIModelPricing{}, &models.OpenAIUsageDaily{})
 	if err != nil {
 		panic(err)
 	}

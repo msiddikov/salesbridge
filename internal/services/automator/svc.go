@@ -35,6 +35,8 @@ type (
 		limit           int
 		offset          int
 		preloadNodeRuns bool
+		nodesCountFrom  *int
+		nodesCountTo    *int
 	}
 )
 
@@ -152,15 +154,29 @@ func getAutomationRunFilterFromContext(c *gin.Context) automationRunFilter {
 	startedAfter, _ := parseQueryTime(c, "startedAfter")
 	startedBefore, _ := parseQueryTime(c, "startedBefore")
 
+	var nodesCountFrom, nodesCountTo *int
+	if v := c.Query("nodesCountFrom"); v != "" {
+		if parsed, err := strconv.Atoi(v); err == nil {
+			nodesCountFrom = &parsed
+		}
+	}
+	if v := c.Query("nodesCountTo"); v != "" {
+		if parsed, err := strconv.Atoi(v); err == nil {
+			nodesCountTo = &parsed
+		}
+	}
+
 	return automationRunFilter{
-		automationId:  automationId,
-		status:        statusFilter,
-		startedAfter:  startedAfter,
-		startedBefore: startedBefore,
-		searchQuery:   searchQuery,
-		batchRunID:    batchRunID,
-		limit:         limit,
-		offset:        offset,
+		automationId:   automationId,
+		status:         statusFilter,
+		startedAfter:   startedAfter,
+		startedBefore:  startedBefore,
+		searchQuery:    searchQuery,
+		batchRunID:     batchRunID,
+		limit:          limit,
+		offset:         offset,
+		nodesCountFrom: nodesCountFrom,
+		nodesCountTo:   nodesCountTo,
 	}
 }
 
@@ -523,6 +539,12 @@ func applyRunFilters(tx *gorm.DB, filter automationRunFilter) *gorm.DB {
 	if filter.automationId != "" {
 		tx = tx.Where("automation_id = ?", filter.automationId)
 	}
+	if filter.nodesCountFrom != nil {
+		tx = tx.Where("(SELECT COUNT(*) FROM automation_run_nodes WHERE automation_run_nodes.run_id = automation_runs.id) >= ?", *filter.nodesCountFrom)
+	}
+	if filter.nodesCountTo != nil {
+		tx = tx.Where("(SELECT COUNT(*) FROM automation_run_nodes WHERE automation_run_nodes.run_id = automation_runs.id) <= ?", *filter.nodesCountTo)
+	}
 	if filter.preloadNodeRuns {
 		tx = tx.Preload("RunNodes")
 	}
@@ -632,4 +654,223 @@ func GetLists(c *gin.Context) {
 	}
 
 	lvn.GinErr(c, 400, fmt.Errorf("unknown list name %q", listName), "unknown list name")
+}
+
+// GetCatalogData returns the automation node catalog for internal MCP tools
+func GetCatalogData() Catalog {
+	cat := designCatalog(catalogFull)
+	return getCatalogWithImplementedNodes(cat)
+}
+
+// GetCatalogListData returns list data for dynamic node fields
+func GetCatalogListData(listName string, location models.Location) (interface{}, error) {
+	switch listName {
+	case "cerboUsers":
+		return svc_cerbo.ListUsers(location)
+	case "googleAdsActions":
+		return svc_googleads.GetLocationConversionActionsList(location)
+	case "aiAssistants":
+		return svc_openai.GetAssistantsList(location)
+	case "cerboEncounterTypes":
+		return svc_cerbo.GetEncounterTypesList(location)
+	case "cerboFreeTextTypes":
+		return svc_cerbo.ListFreeTextNoteTypes(location)
+	default:
+		return nil, fmt.Errorf("unknown list name: %s", listName)
+	}
+}
+
+// AutomationInfo represents automation without sensitive data
+type AutomationInfo struct {
+	ID          string `json:"id"`
+	Name        string `json:"name"`
+	Description string `json:"description,omitempty"`
+	LocationID  string `json:"locationId"`
+	State       string `json:"state"`
+	NodeCount   int    `json:"nodeCount"`
+	CreatedAt   string `json:"createdAt"`
+	UpdatedAt   string `json:"updatedAt"`
+}
+
+// AutomationRunInfo represents a run with node counts
+type AutomationRunInfo struct {
+	ID              string  `json:"id"`
+	AutomationID    string  `json:"automationId"`
+	BatchRunID      *string `json:"batchRunId,omitempty"`
+	Status          string  `json:"status"`
+	TriggerType     string  `json:"triggerType"`
+	ErrorMessage    string  `json:"errorMessage,omitempty"`
+	NodesExecuted   int     `json:"nodesExecuted"`
+	NodesWithErrors int     `json:"nodesWithErrors"`
+	StartedAt       string  `json:"startedAt"`
+	CompletedAt     string  `json:"completedAt,omitempty"`
+}
+
+// BatchRunInfo represents a batch run
+type BatchRunInfo struct {
+	ID             string  `json:"id"`
+	AutomationID   string  `json:"automationId"`
+	NodeID         string  `json:"nodeId"`
+	Status         string  `json:"status"`
+	ItemsProcessed int     `json:"itemsProcessed"`
+	TotalItems     *int    `json:"totalItems,omitempty"`
+	ProgressPct    float64 `json:"progressPct"`
+	ErrorMessage   string  `json:"errorMessage,omitempty"`
+	StartedAt      string  `json:"startedAt,omitempty"`
+	CompletedAt    string  `json:"completedAt,omitempty"`
+}
+
+// GetAutomationsForProfile returns automations for a profile, optionally filtered by location and state
+func GetAutomationsForProfile(profileID uint, locationID, state string) ([]AutomationInfo, error) {
+	query := db.DB.Model(&models.Automation{}).
+		Joins("JOIN locations ON locations.id = automations.location_id").
+		Where("locations.profile_id = ?", profileID)
+
+	if locationID != "" {
+		query = query.Where("automations.location_id = ?", locationID)
+	}
+	if state != "" {
+		query = query.Where("automations.state = ?", state)
+	}
+
+	var automations []models.Automation
+	err := query.Order("automations.created_at DESC").Find(&automations).Error
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]AutomationInfo, len(automations))
+	for i, auto := range automations {
+		result[i] = AutomationInfo{
+			ID:          auto.ID,
+			Name:        auto.Name,
+			Description: auto.Description,
+			LocationID:  auto.LocationId,
+			State:       string(auto.State),
+			NodeCount:   len(auto.Graph.Nodes),
+			CreatedAt:   auto.CreatedAt.Format("2006-01-02T15:04:05Z"),
+			UpdatedAt:   auto.UpdatedAt.Format("2006-01-02T15:04:05Z"),
+		}
+	}
+	return result, nil
+}
+
+// GetAutomationForProfile returns a single automation for a profile
+func GetAutomationForProfile(profileID uint, automationID string) (*models.Automation, error) {
+	var automation models.Automation
+	err := db.DB.
+		Joins("JOIN locations ON locations.id = automations.location_id").
+		Where("automations.id = ? AND locations.profile_id = ?", automationID, profileID).
+		First(&automation).Error
+	if err != nil {
+		return nil, err
+	}
+	return &automation, nil
+}
+
+// GetAutomationRunsForProfile returns automation runs for a profile
+func GetAutomationRunsForProfile(profileID uint, automationID, status string, limit int) ([]AutomationRunInfo, error) {
+	if limit <= 0 || limit > 100 {
+		limit = 20
+	}
+
+	query := db.DB.Model(&models.AutomationRun{}).
+		Joins("JOIN automations ON automations.id = automation_runs.automation_id").
+		Joins("JOIN locations ON locations.id = automations.location_id").
+		Where("locations.profile_id = ?", profileID)
+
+	if automationID != "" {
+		query = query.Where("automation_runs.automation_id = ?", automationID)
+	}
+	if status != "" {
+		query = query.Where("automation_runs.status = ?", status)
+	}
+
+	var runs []models.AutomationRun
+	err := query.
+		Order("automation_runs.started_at DESC").
+		Limit(limit).
+		Preload("RunNodes").
+		Find(&runs).Error
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]AutomationRunInfo, len(runs))
+	for i, run := range runs {
+		info := AutomationRunInfo{
+			ID:              run.ID,
+			AutomationID:    run.AutomationID,
+			BatchRunID:      run.BatchRunID,
+			Status:          string(run.Status),
+			TriggerType:     run.TriggerType,
+			ErrorMessage:    run.ErrorMessage,
+			NodesExecuted:   len(run.RunNodes),
+			NodesWithErrors: run.RunNodesWithErrors,
+			StartedAt:       run.StartedAt.Format("2006-01-02T15:04:05Z"),
+		}
+		if run.CompletedAt != nil {
+			info.CompletedAt = run.CompletedAt.Format("2006-01-02T15:04:05Z")
+		}
+		result[i] = info
+	}
+	return result, nil
+}
+
+// GetAutomationRunForProfile returns a single automation run for a profile
+func GetAutomationRunForProfile(profileID uint, runID string) (*models.AutomationRun, error) {
+	var run models.AutomationRun
+	err := db.DB.
+		Joins("JOIN automations ON automations.id = automation_runs.automation_id").
+		Joins("JOIN locations ON locations.id = automations.location_id").
+		Where("automation_runs.id = ? AND locations.profile_id = ?", runID, profileID).
+		Preload("RunNodes").
+		First(&run).Error
+	if err != nil {
+		return nil, err
+	}
+	return &run, nil
+}
+
+// GetBatchRunsForLocation returns batch runs for a location (after verifying profile ownership)
+func GetBatchRunsForLocation(profileID uint, locationID, status string) ([]BatchRunInfo, error) {
+	// Verify location belongs to profile
+	var location models.Location
+	err := db.DB.Where("id = ? AND profile_id = ?", locationID, profileID).First(&location).Error
+	if err != nil {
+		return nil, fmt.Errorf("location not found or access denied")
+	}
+
+	query := db.DB.Model(&models.AutomationBatchRun{}).Where("location_id = ?", locationID)
+	if status != "" {
+		query = query.Where("status = ?", status)
+	}
+
+	var batchRuns []models.AutomationBatchRun
+	err = query.Order("created_at DESC").Limit(50).Find(&batchRuns).Error
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]BatchRunInfo, len(batchRuns))
+	for i, br := range batchRuns {
+		info := BatchRunInfo{
+			ID:             br.ID,
+			AutomationID:   br.AutomationID,
+			NodeID:         br.NodeID,
+			Status:         string(br.Status),
+			ItemsProcessed: br.ItemsProcessed,
+			TotalItems:     br.TotalItems,
+			ProgressPct:    br.ProgressPct,
+			ErrorMessage:   br.ErrorMessage,
+		}
+		if br.StartedAt != nil {
+			info.StartedAt = br.StartedAt.Format("2006-01-02T15:04:05Z")
+		}
+		if br.CompletedAt != nil {
+			info.CompletedAt = br.CompletedAt.Format("2006-01-02T15:04:05Z")
+		}
+		result[i] = info
+	}
+	return result, nil
 }

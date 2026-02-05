@@ -14,6 +14,13 @@ type OpenAIAssistant struct {
 	gorm.Model
 }
 
+type InternalAssistantThread struct {
+	ProfileID   uint   `gorm:"index:idx_internal_assistant_thread_list"`
+	AssistantID string `gorm:"index:idx_internal_assistant_thread_list"`
+	ThreadID    string `gorm:"not null;uniqueIndex"`
+	gorm.Model
+}
+
 type OpenAIModelPricing struct {
 	Model            string  `gorm:"primaryKey"`
 	InputCentsPer1K  float64 `gorm:"not null"`

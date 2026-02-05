@@ -10,6 +10,7 @@ import (
 	"client-runaway-zenoti/internal/services/svc_config"
 	"client-runaway-zenoti/internal/services/svc_ghl"
 	"client-runaway-zenoti/internal/services/svc_googleads"
+	"client-runaway-zenoti/internal/services/svc_internal_assistant"
 	svc_jpmreport "client-runaway-zenoti/internal/services/svc_jpmReport"
 	"client-runaway-zenoti/internal/services/svc_mcp"
 	"client-runaway-zenoti/internal/services/svc_openai"
@@ -133,5 +134,12 @@ func setRoutes(router *gin.Engine) {
 	mcpKeys.PATCH("/:keyId/revoke", auth.Auth, svc_mcp.RevokeAPIKey)
 	mcpKeys.POST("/:keyId/regenerate", auth.Auth, svc_mcp.RegenerateAPIKey)
 	mcpKeys.DELETE("/:keyId", auth.Auth, svc_mcp.DeleteAPIKey)
+
+	// Internal assistant (MCP key auth)
+	internal := router.Group("/internal")
+	internal.GET("/assistant/agents", auth.Auth, svc_internal_assistant.ListAgents)
+	internal.POST("/assistant/stream", auth.Auth, svc_internal_assistant.Stream)
+	internal.GET("/assistant/threads", auth.Auth, svc_internal_assistant.ListThreads)
+	internal.GET("/assistant/threads/:threadId/messages", auth.Auth, svc_internal_assistant.ListThreadMessages)
 
 }

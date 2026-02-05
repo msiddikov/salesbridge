@@ -12,6 +12,7 @@ import (
 // MCPApiKey represents an API key for MCP server authentication
 type MCPApiKey struct {
 	Name             string `json:"name"`
+	PlainKey         string `json:"-"` // Stored for internal use; external keys are not persisted in plain text.
 	KeyHash          string `gorm:"uniqueIndex" json:"-"`
 	KeyPrefix        string `json:"keyPrefix"`
 	ProfileID        uint   `json:"profileId"`
@@ -20,6 +21,7 @@ type MCPApiKey struct {
 	LastUsedAt       *time.Time          `json:"lastUsedAt"`
 	ExpiresAt        *time.Time          `json:"expiresAt"`
 	IsActive         bool                `gorm:"default:true" json:"isActive"`
+	IsInternal       bool                `gorm:"default:false" json:"isInternal"` // Internal keys see only internal tools
 	gorm.Model
 }
 

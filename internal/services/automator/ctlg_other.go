@@ -22,6 +22,7 @@ var (
 			othersActionDelay,
 			othersActionCondition,
 			othersActionTransformNumber,
+			othersActionTransformLogic,
 		},
 	}
 
@@ -168,6 +169,32 @@ var othersActionTransformNumber = Node{
 	},
 }
 
+var othersActionTransformLogic = Node{
+	Id:          "others.transform.logic",
+	Title:       "Logic Transform",
+	Description: "Performs logical operations on boolean values.",
+	ExecFunc:    othersTransformLogic,
+	Type:        NodeTypeAction,
+	Icon:        "ri:git-branch-line",
+	Color:       ColorDefault,
+	Ports: []NodePort{
+		successPort(othersLogicTransformNodeFields),
+		errorPort,
+	},
+	Fields: []NodeField{
+		{Key: "left", Label: "Left Value", Type: "string", Required: true},
+		{Key: "operator", Label: "Operator", Type: "string", Required: true, SelectOptions: []string{"and", "or", "not", "xor"}},
+		{Key: "right", Label: "Right Value (not used for NOT)", Type: "string", Required: false},
+	},
+}
+
+var othersLogicTransformNodeFields = []NodeField{
+	{Key: "left", Label: "Left Value", Type: "string"},
+	{Key: "operator", Label: "Operator", Type: "string"},
+	{Key: "right", Label: "Right Value", Type: "string"},
+	{Key: "result", Label: "Result", Type: "string"},
+}
+
 func othersTransformNumber(ctx context.Context, fields map[string]interface{}, l models.Location) (payload map[string]map[string]interface{}) {
 	lv, ok := toFloat(fields["left"])
 	if !ok {
@@ -206,6 +233,75 @@ func othersTransformNumber(ctx context.Context, fields map[string]interface{}, l
 	}
 
 	return successPayload(payloadData)
+}
+
+func othersTransformLogic(ctx context.Context, fields map[string]interface{}, l models.Location) (payload map[string]map[string]interface{}) {
+	operator, _ := fields["operator"].(string)
+
+	leftVal, ok := toBool(fields["left"])
+	if !ok {
+		return errorPayload(fmt.Errorf("unable to parse left value as boolean"), "error")
+	}
+
+	var result bool
+
+	switch operator {
+	case "not":
+		result = !leftVal
+	case "and":
+		rightVal, ok := toBool(fields["right"])
+		if !ok {
+			return errorPayload(fmt.Errorf("unable to parse right value as boolean"), "error")
+		}
+		result = leftVal && rightVal
+	case "or":
+		rightVal, ok := toBool(fields["right"])
+		if !ok {
+			return errorPayload(fmt.Errorf("unable to parse right value as boolean"), "error")
+		}
+		result = leftVal || rightVal
+	case "xor":
+		rightVal, ok := toBool(fields["right"])
+		if !ok {
+			return errorPayload(fmt.Errorf("unable to parse right value as boolean"), "error")
+		}
+		result = leftVal != rightVal
+	default:
+		return errorPayload(fmt.Errorf("unknown operator: %s", operator), "error")
+	}
+
+	payloadData := map[string]interface{}{
+		"left":     fields["left"],
+		"right":    fields["right"],
+		"operator": operator,
+		"result":   fmt.Sprintf("%t", result),
+	}
+
+	return successPayload(payloadData)
+}
+
+func toBool(value interface{}) (bool, bool) {
+	switch v := value.(type) {
+	case bool:
+		return v, true
+	case string:
+		lower := strings.ToLower(strings.TrimSpace(v))
+		if lower == "true" || lower == "1" || lower == "yes" {
+			return true, true
+		}
+		if lower == "false" || lower == "0" || lower == "no" || lower == "" {
+			return false, true
+		}
+		return false, false
+	case int:
+		return v != 0, true
+	case int64:
+		return v != 0, true
+	case float64:
+		return v != 0, true
+	default:
+		return false, false
+	}
 }
 
 func othersDelay(ctx context.Context, fields map[string]interface{}, l models.Location) (payload map[string]map[string]interface{}) {

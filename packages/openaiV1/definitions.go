@@ -70,15 +70,36 @@ type (
 	}
 
 	Run struct {
-		ID           string            `json:"id,omitempty"`
-		Object       string            `json:"object,omitempty"`
-		Status       string            `json:"status,omitempty"`
-		AssistantID  string            `json:"assistant_id,omitempty"`
-		ThreadID     string            `json:"thread_id,omitempty"`
-		Model        string            `json:"model,omitempty"`
-		Instructions string            `json:"instructions,omitempty"`
-		Metadata     map[string]string `json:"metadata,omitempty"`
-		Usage        ResponseUsage     `json:"usage,omitempty"`
-		CreatedAt    int64             `json:"created_at,omitempty"`
+		ID             string             `json:"id,omitempty"`
+		Object         string             `json:"object,omitempty"`
+		Status         string             `json:"status,omitempty"`
+		AssistantID    string             `json:"assistant_id,omitempty"`
+		ThreadID       string             `json:"thread_id,omitempty"`
+		Model          string             `json:"model,omitempty"`
+		Instructions   string             `json:"instructions,omitempty"`
+		RequiredAction *RunRequiredAction `json:"required_action,omitempty"`
+		Metadata       map[string]string  `json:"metadata,omitempty"`
+		Usage          ResponseUsage      `json:"usage,omitempty"`
+		CreatedAt      int64              `json:"created_at,omitempty"`
+	}
+
+	RunRequiredAction struct {
+		Type              string                `json:"type,omitempty"`
+		SubmitToolOutputs *RunSubmitToolOutputs `json:"submit_tool_outputs,omitempty"`
+	}
+
+	RunSubmitToolOutputs struct {
+		ToolCalls []RunToolCall `json:"tool_calls,omitempty"`
+	}
+
+	RunToolCall struct {
+		ID       string               `json:"id,omitempty"`
+		Type     string               `json:"type,omitempty"`
+		Function *RunToolCallFunction `json:"function,omitempty"`
+	}
+
+	RunToolCallFunction struct {
+		Name      string `json:"name,omitempty"`
+		Arguments string `json:"arguments,omitempty"`
 	}
 )

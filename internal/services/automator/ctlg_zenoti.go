@@ -62,7 +62,8 @@ var (
 	zenotiActionFindGuest = Node{
 		Id:          "zenoti.guest.find",
 		Title:       "Find Guest",
-		Description: "Finds a guest in Zenoti. with email or phone.",
+		Description: "Finds a guest in Zenoti by email or phone.",
+		ExecFunc:    zenotiActionFindGuestFunc,
 		Type:        NodeTypeAction,
 		Icon:        "ri:form",
 		Color:       ColorAction,
@@ -70,6 +71,10 @@ var (
 			{
 				Name:    "success",
 				Payload: zenotiGuestNodeFields,
+			},
+			{
+				Name:    "notFound",
+				Payload: []NodeField{},
 			},
 			errorPort,
 		},
@@ -100,6 +105,7 @@ var (
 		Id:          "zenoti.guest.create",
 		Title:       "Create Guest",
 		Description: "Creates a new guest in Zenoti.",
+		ExecFunc:    zenotiActionCreateGuestFunc,
 		Type:        NodeTypeAction,
 		Icon:        "ri:form",
 		Color:       ColorAction,
@@ -110,7 +116,32 @@ var (
 			},
 			errorPort,
 		},
-		Fields: zenotiGuestNodeFields,
+		Fields: zenotiCreateGuestNodeFields,
+	}
+
+	// Fields for creating a guest - mandatory fields first, then optional
+	zenotiCreateGuestNodeFields = []NodeField{
+		// Mandatory fields
+		{Key: "firstName", Label: "First Name", Type: "string", Required: true},
+		{Key: "lastName", Label: "Last Name", Type: "string", Required: true},
+		{Key: "phone", Label: "Phone", Type: "string", Required: true},
+		{Key: "email", Label: "Email", Type: "string", Required: true},
+
+		// Optional fields
+		{Key: "dob", Label: "Date of Birth", Type: "string"},
+		{Key: "gender", Label: "Gender (0=NotSpecified, 1=Male, 2=Female)", Type: "number"},
+
+		{Key: "address1", Label: "Address 1", Type: "string"},
+		{Key: "address2", Label: "Address 2", Type: "string"},
+		{Key: "city", Label: "City", Type: "string"},
+		{Key: "zipCode", Label: "Zip Code", Type: "string"},
+
+		{Key: "receiveMarketingEmails", Label: "Receive Marketing Emails", Type: "string"},
+		{Key: "receiveTransactionalEmails", Label: "Receive Transactional Emails", Type: "string"},
+		{Key: "receiveMarketingSms", Label: "Receive Marketing SMS", Type: "string"},
+		{Key: "receiveTransactionalSms", Label: "Receive Transactional SMS", Type: "string"},
+
+		{Key: "tags", Label: "Tags (comma separated)", Type: "string"},
 	}
 
 	zenotiActionUpdateGuest = Node{
@@ -365,6 +396,138 @@ func zenotiActionGetGuestById(ctx context.Context, fields map[string]interface{}
 	}
 
 	return successPayload(mapZenotiGuestToNodePayload(guest))
+}
+
+func zenotiActionFindGuestFunc(ctx context.Context, fields map[string]interface{}, l models.Location) map[string]map[string]interface{} {
+	email, _ := fields["email"].(string)
+	phone, _ := fields["phone"].(string)
+
+	if email == "" && phone == "" {
+		return errorPayload(nil, "email or phone is required")
+	}
+
+	zenotiCli, err := zenotiv1.NewClient(l.Id, l.ZenotiCenterId, l.ZenotiApiObj.ApiKey)
+	if err != nil {
+		return errorPayload(err, "failed to create zenoti client")
+	}
+
+	guests, err := zenotiCli.GuestsGetByPhoneEmail(phone, email)
+	if err != nil {
+		// Check if it's a "not found" error
+		if err.Error() == "guest not found" {
+			return map[string]map[string]interface{}{
+				"notFound": {},
+			}
+		}
+		return errorPayload(err, "failed to search for guest")
+	}
+
+	if len(guests) == 0 {
+		return map[string]map[string]interface{}{
+			"notFound": {},
+		}
+	}
+
+	// Return the first matching guest
+	return successPayload(mapZenotiGuestToNodePayload(guests[0]))
+}
+
+func zenotiActionCreateGuestFunc(ctx context.Context, fields map[string]interface{}, l models.Location) map[string]map[string]interface{} {
+	// Validate mandatory fields
+	firstName, _ := fields["firstName"].(string)
+	lastName, _ := fields["lastName"].(string)
+	phone, _ := fields["phone"].(string)
+	email, _ := fields["email"].(string)
+
+	if firstName == "" {
+		return errorPayload(nil, "firstName is required")
+	}
+	if lastName == "" {
+		return errorPayload(nil, "lastName is required")
+	}
+	if phone == "" {
+		return errorPayload(nil, "phone is required")
+	}
+	if email == "" {
+		return errorPayload(nil, "email is required")
+	}
+
+	// Build guest object
+	guest := zenotiv1.Guest{
+		Personal_info: zenotiv1.Personal_info{
+			First_name: firstName,
+			Last_name:  lastName,
+			Email:      email,
+			Mobile_phone: zenotiv1.Phone_info{
+				Number: phone,
+			},
+		},
+	}
+
+	// Optional fields - Date of Birth
+	if dob, ok := fields["dob"].(string); ok && dob != "" {
+		parsedDob, err := parseTime(dob)
+		if err == nil {
+			guest.Personal_info.DateOfBirth = zenotiv1.ZenotiTime{Time: parsedDob}
+		}
+	} else {
+		guest.Personal_info.DateOfBirth = zenotiv1.ZenotiTime{Time: time.Date(1990, 1, 1, 0, 0, 0, 0, time.UTC)}
+	}
+
+	// Optional fields - Gender
+	if gender, ok := fields["gender"].(float64); ok {
+		guest.Gender = int(gender)
+	}
+
+	// Optional fields - Address
+	if addr1, ok := fields["address1"].(string); ok {
+		guest.Address_info.Address_1 = addr1
+	}
+	if addr2, ok := fields["address2"].(string); ok {
+		guest.Address_info.Address_2 = addr2
+	}
+	if city, ok := fields["city"].(string); ok {
+		guest.Address_info.City = city
+	}
+	if zipCode, ok := fields["zipCode"].(string); ok {
+		guest.Address_info.Zip_code = zipCode
+	}
+
+	// Optional fields - Preferences (accept string "true"/"false" for reference support)
+	if v, ok := fields["receiveMarketingEmails"].(string); ok && v != "" {
+		guest.Preferences.Receive_Marketing_Email = strings.ToLower(v) == "true"
+	}
+	if v, ok := fields["receiveTransactionalEmails"].(string); ok && v != "" {
+		guest.Preferences.Receive_Transactional_Email = strings.ToLower(v) == "true"
+	}
+	if v, ok := fields["receiveMarketingSms"].(string); ok && v != "" {
+		guest.Preferences.Receive_Marketing_SMS = strings.ToLower(v) == "true"
+	}
+	if v, ok := fields["receiveTransactionalSms"].(string); ok && v != "" {
+		guest.Preferences.Receive_Transactional_SMS = strings.ToLower(v) == "true"
+	}
+
+	// Optional fields - Tags
+	if tagsStr, ok := fields["tags"].(string); ok && tagsStr != "" {
+		guest.Tags = strings.Split(tagsStr, ",")
+		for i := range guest.Tags {
+			guest.Tags[i] = strings.TrimSpace(guest.Tags[i])
+		}
+	}
+
+	// Create Zenoti client
+	zenotiCli, err := zenotiv1.NewClient(l.Id, l.ZenotiCenterId, l.ZenotiApiObj.ApiKey)
+	if err != nil {
+		return errorPayload(err, "failed to create zenoti client")
+	}
+
+	// Create the guest
+	createdGuest, err := zenotiCli.GuestsCreate(guest)
+	if err != nil {
+		return errorPayload(err, "failed to create guest")
+	}
+
+	return successPayload(mapZenotiGuestToNodePayload(createdGuest))
 }
 
 //////////////////////////////////////////////////

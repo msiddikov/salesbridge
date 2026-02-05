@@ -16,6 +16,115 @@ type LocationItem struct {
 	Name string `json:"name"`
 }
 
+// LocationWithIntegrations represents a location with integration status
+type LocationWithIntegrations struct {
+	ID               string `json:"id"`
+	Name             string `json:"name"`
+	HasZenoti        bool   `json:"hasZenoti"`
+	ZenotiCenterName string `json:"zenotiCenterName,omitempty"`
+	HasCerbo         bool   `json:"hasCerbo"`
+	HasGoogleAds     bool   `json:"hasGoogleAds"`
+}
+
+// IntegrationInfo represents an integration without credentials
+type IntegrationInfo struct {
+	Type   string `json:"type"`
+	ID     uint   `json:"id"`
+	Name   string `json:"name"`
+	Status string `json:"status"`
+}
+
+// GetLocationsForProfile returns all locations for a profile with integration status
+func GetLocationsForProfile(profileID uint) ([]LocationWithIntegrations, error) {
+	var locations []models.Location
+	err := db.DB.
+		Where("profile_id = ?", profileID).
+		Preload("ZenotiApiObj").
+		Preload("CerboApiObj").
+		Find(&locations).Error
+	if err != nil {
+		return nil, err
+	}
+
+	// Check for Google Ads connections
+	var gaSettings []models.GoogleAdsLocationSetting
+	db.DB.Where("profile_id = ?", profileID).Find(&gaSettings)
+	gaByLocation := make(map[string]bool)
+	for _, s := range gaSettings {
+		gaByLocation[s.LocationId] = true
+	}
+
+	result := make([]LocationWithIntegrations, len(locations))
+	for i, loc := range locations {
+		result[i] = LocationWithIntegrations{
+			ID:               loc.Id,
+			Name:             loc.Name,
+			HasZenoti:        loc.ZenotiCenterId != "",
+			ZenotiCenterName: loc.ZenotiCenterName,
+			HasCerbo:         loc.CerboApiObjId != nil && *loc.CerboApiObjId > 0,
+			HasGoogleAds:     gaByLocation[loc.Id],
+		}
+	}
+	return result, nil
+}
+
+// GetLocationForProfile returns a single location for a profile with preloaded relations
+func GetLocationForProfile(profileID uint, locationID string) (*models.Location, error) {
+	var location models.Location
+	err := db.DB.
+		Where("id = ? AND profile_id = ?", locationID, profileID).
+		Preload("ZenotiApiObj").
+		Preload("CerboApiObj").
+		First(&location).Error
+	if err != nil {
+		return nil, err
+	}
+	return &location, nil
+}
+
+// GetIntegrationsForProfile returns all integrations for a profile
+func GetIntegrationsForProfile(profileID uint) []IntegrationInfo {
+	var integrations []IntegrationInfo
+
+	// Zenoti APIs
+	var zenotiApis []models.ZenotiApi
+	db.DB.Select("id, api_name").Where("profile_id = ?", profileID).Find(&zenotiApis)
+	for _, api := range zenotiApis {
+		integrations = append(integrations, IntegrationInfo{
+			Type:   "zenoti",
+			ID:     api.ID,
+			Name:   api.ApiName,
+			Status: "configured",
+		})
+	}
+
+	// Cerbo APIs
+	var cerboApis []models.CerboApi
+	db.DB.Select("id, api_name").Where("profile_id = ?", profileID).Find(&cerboApis)
+	for _, api := range cerboApis {
+		integrations = append(integrations, IntegrationInfo{
+			Type:   "cerbo",
+			ID:     api.ID,
+			Name:   api.ApiName,
+			Status: "configured",
+		})
+	}
+
+	// Google Ads connections
+	var gaConnections []models.GoogleAdsConnection
+	db.DB.Where("profile_id = ?", profileID).Find(&gaConnections)
+	for _, conn := range gaConnections {
+		integrations = append(integrations, IntegrationInfo{
+			Type:   "google_ads",
+			ID:     conn.ID,
+			Name:   conn.DisplayName,
+			Status: "connected",
+		})
+	}
+
+	return integrations
+}
+
 // ListLocations returns all locations available to the user's profile
 func ListLocations(c *gin.Context) {
 	user := c.MustGet("user").(models.User)

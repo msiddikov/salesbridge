@@ -38,6 +38,7 @@ func (a *Client) ContactsGet(contactId string) (Contact, error) {
 		Method:   "GET",
 		Endpoint: "/contacts/" + contactId,
 	}, &res)
+
 	return res.Contact, err
 }
 

@@ -4,10 +4,11 @@ import "gorm.io/gorm"
 
 type (
 	Profile struct {
-		Name      string
-		OwnerID   uint
-		Users     []User
-		Locations []Location
+		Name       string
+		OwnerID    uint
+		Users      []User
+		Locations  []Location
+		MCPApiKeys []MCPApiKey `gorm:"foreignKey:ProfileID"`
 		gorm.Model
 	}
 

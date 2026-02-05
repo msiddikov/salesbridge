@@ -1,0 +1,2 @@
+mcpi:
+	npx @modelcontextprotocol/inspector

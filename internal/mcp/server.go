@@ -18,19 +18,25 @@ type MCPServer struct {
 
 // NewMCPServer creates a new MCP server instance
 func NewMCPServer(addr string) *MCPServer {
+	mcpServer := &MCPServer{
+		auth: NewAuthHandler(),
+	}
+
 	s := server.NewMCPServer(
 		"SalesBridge MCP",
 		"1.0.0",
 		server.WithToolCapabilities(true),
+		server.WithToolFilter(mcpServer.createToolFilter()),
+		server.WithToolHandlerMiddleware(mcpServer.createToolMiddleware()),
 	)
 
-	mcpServer := &MCPServer{
-		server: s,
-		auth:   NewAuthHandler(),
-	}
+	mcpServer.server = s
 
-	// Register tools
+	// Register customer-facing tools
 	mcpServer.registerTools()
+
+	// Register internal tools (only visible to internal API keys)
+	mcpServer.registerInternalTools()
 
 	// Create streamable HTTP server with auth context extraction
 	mcpServer.httpServer = server.NewStreamableHTTPServer(s,

@@ -2,9 +2,11 @@ package auth
 
 import (
 	"client-runaway-zenoti/internal/db/models"
+	"fmt"
 
 	lvn "github.com/Lavina-Tech-LLC/lavinagopackage/v2"
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 func Auth(c *gin.Context) {
@@ -49,11 +51,17 @@ func Register(c *gin.Context) {
 		return
 	}
 
+	tx := models.DB.Begin()
+	if tx.Error != nil {
+		lvn.GinErr(c, 500, tx.Error, "Unable to start registration")
+		return
+	}
+
 	profile := models.Profile{
 		Name: profileName,
 	}
-	res := models.DB.Create(&profile)
-	if res.Error != nil {
+	if err := tx.Create(&profile).Error; err != nil {
+		tx.Rollback()
 		c.Data(lvn.Res(400, "", "Unable to create profile"))
 		return
 	}
@@ -64,14 +72,51 @@ func Register(c *gin.Context) {
 		ProfileID: profile.ID,
 	}
 
-	result = models.DB.Create(&user)
-
-	if result.Error != nil {
-		lvn.GinErr(c, 400, result.Error, "Unable to create user")
+	if err := tx.Create(&user).Error; err != nil {
+		tx.Rollback()
+		lvn.GinErr(c, 400, err, "Unable to create user")
 		return
 	}
 
-	profile.OwnerID = user.ID
-	models.DB.Save(&profile)
-	c.Data(lvn.Res(200, result, "User registered successfully"))
+	if err := tx.Model(&profile).Update("owner_id", user.ID).Error; err != nil {
+		tx.Rollback()
+		lvn.GinErr(c, 400, err, "Unable to update profile owner")
+		return
+	}
+
+	if err := createInternalMCPKey(tx, profile.ID); err != nil {
+		tx.Rollback()
+		lvn.GinErr(c, 500, err, "Unable to create internal MCP key")
+		return
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		lvn.GinErr(c, 500, err, "Unable to complete registration")
+		return
+	}
+
+	c.Data(lvn.Res(200, user, "User registered successfully"))
+}
+
+func createInternalMCPKey(tx *gorm.DB, profileID uint) error {
+	if profileID == 0 {
+		return nil
+	}
+
+	plainKey, keyHash, keyPrefix, err := models.GenerateMCPApiKey()
+	if err != nil {
+		return err
+	}
+
+	key := models.MCPApiKey{
+		Name:       fmt.Sprintf("internal-profile-%d", profileID),
+		PlainKey:   plainKey,
+		KeyHash:    keyHash,
+		KeyPrefix:  keyPrefix,
+		ProfileID:  profileID,
+		IsActive:   true,
+		IsInternal: true,
+	}
+
+	return tx.Create(&key).Error
 }
